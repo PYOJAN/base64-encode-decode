@@ -1,0 +1,101 @@
+.file-picker {
+  width: 100%;
+  height: 200px;
+  transition: height 0.3s ease;
+  background-color: #c5e3f6;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  flex-direction: column;
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+
+  &.drag-over {
+    background-color: green;
+  }
+
+  &::before {
+    position: absolute;
+    content: "";
+    width: 96%;
+    height: 90%;
+    border: 2px dashed rgb(122, 86, 158);
+    border-radius: 8px;
+  }
+
+  h3 {
+    text-transform: capitalize;
+    color: #071e3d81;
+  }
+
+  h4 {
+    width: 30px;
+    height: 30px;
+    background-color: #071e3d81;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    font-size: 0.8rem;
+    opacity: 0.6;
+    position: relative;
+    z-index: 1;
+    &::after,
+    &::before {
+      position: absolute;
+      content: "";
+      width: 140px;
+      height: 2px;
+      background-color: #071e3d81;
+      opacity: 0.4;
+      z-index: -2;
+    }
+    &::after {
+      right: -140px;
+    }
+    &::before {
+      left: -140px;
+    }
+  }
+
+  label {
+    width: 200px;
+    height: 40px;
+    background-color: #fc5185;
+    color: #fff;
+    font-size: 1.2rem;
+    text-transform: capitalize;
+    cursor: pointer;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 6px;
+    z-index: 2;
+    transition: all 0.3s ease-out;
+
+    &:hover {
+      font-size: 1.3rem;
+      background-color: #bd3a62;
+    }
+  }
+
+  span {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #bd3a619e;
+    letter-spacing: 1px;
+  }
+
+  .copy-btn {
+    position: absolute;
+    bottom: 15px;
+    right: 20px;
+
+    display: flex;
+    gap: 5px;
+  }
+}

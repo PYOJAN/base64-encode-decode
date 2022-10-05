@@ -1,0 +1,100 @@
+.text-data {
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  .clearFileSelection {
+    position: absolute;
+    bottom: 15px;
+    left: 20px;
+    padding: 3px 5px;
+    background-color: rgb(232, 81, 81);
+    color: #fff;
+    &:hover {
+      background-color: red;
+    }
+  }
+
+  .wrapper {
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+    .resultViewer {
+      flex: 1;
+
+      &:last-child {
+        flex: 3;
+        background-color: #283145;
+      }
+
+      .clearTextFeild {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        padding: 3px 5px;
+        background-color: rgb(232, 81, 81);
+        color: #fff;
+        &:hover {
+          background-color: red;
+        }
+      }
+      .divider {
+        position: absolute;
+        top: -1px;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background-color: #fc5185;
+        &::before {
+          position: absolute;
+          content: attr(data-message);
+          top: -10px;
+          left: 50%;
+          transform: translateX(-50%);
+          border-radius: 4px;
+          padding: 3px 5px;
+          font-size: 0.8rem;
+          background-color: #fc5185;
+          color: #fff;
+        }
+      }
+      .paste-content {
+        position: absolute;
+        top: 5px;
+        right: 20px;
+        padding: 4px 5px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        background-color: #00bcd4;
+        color: white;
+        transition: 0.2s all ease-out;
+        visibility: hidden;
+        opacity: 0;
+        &:hover {
+          background-color: #02889a;
+        }
+        img {
+          width: 18px;
+        }
+      }
+      &:hover {
+        .paste-content {
+          top: 10px;
+          visibility: visible;
+          opacity: 1;
+        }
+      }
+    }
+  }
+}
+
+.btn_wrapper {
+  position: absolute;
+  top: -45px;
+  right: 10px;
+}

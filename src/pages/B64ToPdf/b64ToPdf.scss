@@ -1,0 +1,133 @@
+.text-field {
+  width: 100%;
+  &::placeholder {
+    color: rgb(30, 26, 54);
+    font-size: larger;
+  }
+}
+.main__body {
+  .btn-paste {
+    position: absolute;
+    text-transform: capitalize;
+    font-size: 1.5rem;
+    transition: all 0.3s ease-out;
+  }
+  .button-group {
+    position: absolute;
+    bottom: 20px;
+    display: flex;
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-around;
+    .btn-decode,
+    .btn-clear {
+      bottom: 20px;
+      color: white;
+      &:first-child {
+        align-self: center;
+        padding: 3px 10px;
+        background-color: #fc5184c0;
+        border: 1.5px solid #b83a60;
+        &:hover {
+          background-color: #b83a60;
+        }
+      }
+      &:last-child {
+        background-color: #02889a;
+        &:hover {
+          background-color: #00626f;
+        }
+      }
+    }
+  }
+
+  .btn-paste {
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #00bcd4;
+    color: white;
+    padding: 4px 5px;
+    font-size: 1rem;
+    visibility: hidden;
+    opacity: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    img {
+      width: 18px;
+    }
+
+    &:hover {
+      background-color: #0094a8;
+    }
+  }
+  &:hover {
+    .btn-paste {
+      top: 40px;
+      visibility: visible;
+      opacity: 1;
+    }
+  }
+}
+
+.pdfDisOverlayer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: #293653c9;
+  color: white;
+  display: flex;
+  padding: 10px 0;
+
+  a {
+    display: none;
+  }
+
+  .closePdfDis,
+  .download-btn {
+    position: absolute;
+    bottom: 30px;
+    padding: 3px 5px;
+
+    width: max-content;
+    height: max-content;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    color: #fff;
+    transition: all 0.2s ease-in-out;
+
+    z-index: 9;
+  }
+  .closePdfDis {
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #fc518499;
+    border: 1.5px solid #fc5184;
+    img {
+      width: 18px;
+      margin-right: 5px;
+    }
+
+    &:hover {
+      background-color: #fc5184;
+    }
+  }
+  .download-btn {
+    right: 40px;
+    background-color: #1fb141ad;
+    border: 1.5px solid #1fb141;
+
+    img {
+      width: 18px;
+      margin-right: 5px;
+    }
+    &:hover {
+      background-color: #1fb141;
+    }
+  }
+}

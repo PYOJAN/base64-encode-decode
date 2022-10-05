@@ -1,0 +1,33 @@
+.buttons-group {
+  height: max-content;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+
+  .btn-b64-copy,
+  .btn-url-copy {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    width: max-content;
+    color: white;
+    img {
+      width: 15px;
+    }
+  }
+  .btn-b64-copy {
+    background-color: #00bcd4;
+    &:hover {
+      background-color: #007e8f;
+    }
+  }
+  .btn-url-copy {
+    background-color: #6aa9ff;
+    &:hover {
+      background-color: #4775b5;
+    }
+  }
+}

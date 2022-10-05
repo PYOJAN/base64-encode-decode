@@ -1,0 +1,25 @@
+{
+  "name": "chrome-ext-dev_tool",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "yarn del && vite build && yarn copy && rm -rf dist",
+    "preview": "vite preview",
+    "del": "rm -rf Dev-tool/dist/",
+    "copy": "cp -r dist/ Dev-tool/"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-pdf": "5.7.2"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.17",
+    "@types/react-dom": "^18.0.6",
+    "@vitejs/plugin-react": "^2.1.0",
+    "sass": "^1.54.9",
+    "vite": "^3.1.0"
+  }
+}

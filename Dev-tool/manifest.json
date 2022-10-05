@@ -1,0 +1,22 @@
+{
+  "name": "Dev Tool",
+  "description": "PDF and Text decoder",
+  "version": "1.0",
+  "manifest_version": 3,
+  "permissions": ["storage", "tabs"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "./icons/logo_48.png",
+      "32": "./icons/logo_32.png",
+      "48": "./icons/logo_48.png",
+      "128": "./icons/logo_128.png"
+    }
+  },
+  "icons": {
+    "16": "./icons/logo_48.png",
+    "32": "./icons/logo_32.png",
+    "48": "./icons/logo_48.png",
+    "128": "./icons/logo_128.png"
+  }
+}

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "make": "vite build",
     "build": "yarn del && vite build && yarn copy && rm -rf dist",
     "preview": "vite preview",
     "del": "rm -rf Dev-tool/dist/",

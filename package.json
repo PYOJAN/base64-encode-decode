@@ -1,5 +1,6 @@
 {
   "name": "chrome-ext-dev_tool",
+  "homepage": "http://pyojan.github.io/base64-encode-decode",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,7 +10,9 @@
     "build": "yarn del && vite build && yarn copy && rm -rf dist",
     "preview": "vite preview",
     "del": "rm -rf Dev-tool/dist/",
-    "copy": "cp -r dist/ Dev-tool/"
+    "copy": "cp -r dist/ Dev-tool/",
+    "predeploy": "npm run make",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -20,6 +23,7 @@
     "@types/react": "^18.0.17",
     "@types/react-dom": "^18.0.6",
     "@vitejs/plugin-react": "^2.1.0",
+    "gh-pages": "^4.0.0",
     "sass": "^1.54.9",
     "vite": "^3.1.0"
   }

@@ -3,10 +3,14 @@ import { Document, Page, pdfjs } from "react-pdf";
 import "./PdfViewer.scss";
 // import pdfWorker from "./pdf.worker";
 
-// pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
-pdfjs.GlobalWorkerOptions.workerSrc = "./pdf.worker.js";
+// console.log(pdfjs.version);
 
-console.log(pdfjs.version);
+// pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
+// pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.js`;
+pdfjs.GlobalWorkerOptions.workerSrc = "./pdf.worker.js";
+import "react-pdf/dist/esm/Page/AnnotationLayer.css";
+import "react-pdf/dist/esm/Page/TextLayer.css";
+
 
 const PdfViewer = ({ pdfBase64, onError = (isError) => {} }) => {
   const [pdfInfo, setPdfInfo] = useState("");
@@ -35,7 +39,9 @@ const PdfViewer = ({ pdfBase64, onError = (isError) => {} }) => {
           <Page
             key={page}
             pageNumber={page}
-            onClick={onClikHandle}
+            // onClick={onClikHandle}
+            renderAnnotationLayer={true}
+            devicePixelRatio={2}
             scale={1.3}
             height={750}
           />

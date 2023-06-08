@@ -17,6 +17,7 @@ const FilePicker = ({
     pdf: "application/pdf",
     text: "text/plain",
     xml: "text/xml",
+    json: "application/json"
   };
 
   const accept = useMemo(() => {

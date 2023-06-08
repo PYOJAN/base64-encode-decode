@@ -60,8 +60,8 @@ const TextToB64 = () => {
       <div className="text-data">
         {!textContent.textData && (
           <FilePicker
-            acceptType={["text", "xml"]}
-            title="Select TEXT or XML file to convert into Base64"
+            acceptType={["text", "xml", "json"]}
+            title="Select TEXT, XML or JOSN file to convert into Base64"
             onLoadSuccess={handleOnFileLoad}
           >
             {B64 && (

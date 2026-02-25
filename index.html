@@ -2,12 +2,171 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="logo.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dev Tool</title>
+    <title>Dev Tool - Developer Utilities</title>
+
+    <!-- Favicon & Icons -->
+    <link rel="icon" type="image/x-icon" href="logo.ico" />
+    <link rel="apple-touch-icon" href="logo.png" />
+    <link rel="manifest" href="manifest.json" />
+
+    <!-- Primary Meta Tags -->
+    <meta name="description" content="Free online developer utilities — Base64 encoder/decoder, PDF tools, X.509 certificate decoder, JSON/XML/YAML formatters, JWT decoder, hash generator, regex tester, color converter, and 20+ more tools. All processing happens locally in your browser." />
+    <meta name="keywords" content="base64 encoder, base64 decoder, pdf to base64, base64 to pdf, certificate decoder, x509, pem converter, jwt decoder, json formatter, xml formatter, yaml formatter, hash generator, sha256, regex tester, url encoder, uuid generator, number base converter, color converter, csv to json, diff viewer, timestamp converter, developer tools, online tools, pkcs7 viewer, crl parser, csr generator, pem to der" />
+    <meta name="author" content="pyojan" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="application-name" content="Dev Tool" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Dev Tool" />
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://pyojan.github.io/base64-encode-decode/" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Dev Tool" />
+    <meta property="og:title" content="Dev Tool - Free Online Developer Utilities" />
+    <meta property="og:description" content="25+ free browser-based developer tools: Base64, PDF, X.509 certificates, JSON/XML/YAML formatters, JWT decoder, hash generator, regex tester, and more. No data leaves your browser." />
+    <meta property="og:url" content="https://pyojan.github.io/base64-encode-decode/" />
+    <meta property="og:image" content="https://pyojan.github.io/base64-encode-decode/logo.png" />
+    <meta property="og:image:width" content="192" />
+    <meta property="og:image:height" content="192" />
+    <meta property="og:image:alt" content="Dev Tool logo" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Dev Tool - Free Online Developer Utilities" />
+    <meta name="twitter:description" content="25+ free browser-based developer tools. Base64, PDF, certificates, formatters, JWT, hash, regex, and more. All processing is local." />
+    <meta name="twitter:image" content="https://pyojan.github.io/base64-encode-decode/logo.png" />
+    <meta name="twitter:image:alt" content="Dev Tool logo" />
+
+    <!-- Structured Data - WebApplication -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Dev Tool",
+      "alternateName": "Dev Tool - Developer Utilities",
+      "url": "https://pyojan.github.io/base64-encode-decode/",
+      "description": "A collection of 25+ free online developer utilities. Base64 encoder/decoder, PDF tools, X.509 certificate decoder, JSON/XML/YAML formatters, JWT decoder, hash generator, regex tester, and more. All processing happens locally in your browser.",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript. Works in Chrome, Firefox, Safari, Edge.",
+      "softwareVersion": "1.0.0",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Base64 Encode/Decode",
+        "PDF to Base64 Converter",
+        "Base64 to PDF Converter",
+        "PDF Generator",
+        "X.509 Certificate Decoder",
+        "PEM/DER Converter",
+        "JWT Decoder",
+        "PKCS#7/CMS Viewer",
+        "CRL Parser",
+        "Certificate Chain Validator",
+        "CSR Generator",
+        "JSON Formatter",
+        "XML Formatter",
+        "YAML Formatter",
+        "Hash Generator (SHA-256, SHA-1, MD5)",
+        "Regex Tester",
+        "URL Encoder/Decoder",
+        "UUID Generator",
+        "Number Base Converter",
+        "Color Converter (HEX, RGB, HSL)",
+        "CSV/JSON Converter",
+        "Diff Viewer",
+        "Timestamp Converter"
+      ],
+      "screenshot": "https://pyojan.github.io/base64-encode-decode/logo.png",
+      "image": "https://pyojan.github.io/base64-encode-decode/logo.png"
+    }
+    </script>
+
+    <!-- Structured Data - BreadcrumbList -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Dev Tool",
+          "item": "https://pyojan.github.io/base64-encode-decode/"
+        }
+      ]
+    }
+    </script>
+
+    <!-- Structured Data - FAQPage for SEO snippets -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How do I convert a PDF to Base64?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Upload your PDF file to the PDF to Base64 tool. The file is processed entirely in your browser and converted to a Base64 string that you can copy or download."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I decode an X.509 certificate?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Paste your PEM-encoded certificate or upload a DER file into the Certificate Decoder. It displays the subject, issuer, validity, extensions, key usage, SANs, and fingerprints."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is my data safe with Dev Tool?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. All processing happens locally in your browser using JavaScript. No data is sent to any server. Your files, certificates, and text never leave your device."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I decode a JWT token?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Paste your JWT token into the JWT Decoder tool. It splits the token into its header, payload, and signature parts, decoding each section for easy inspection."
+          }
+        }
+      ]
+    }
+    </script>
+
+    <!-- GitHub Pages SPA redirect handler -->
+    <script>
+      (function(l) {
+        if (l.search[1] === '/') {
+          var decoded = l.search.slice(1).split('&').map(function(s) {
+            return s.replace(/~and~/g, '&')
+          }).join('?');
+          window.history.replaceState(null, null,
+            l.pathname.slice(0, -1) + decoded + l.hash
+          );
+        }
+      }(window.location))
+    </script>
   </head>
-  <body>
+  <body class="dark">
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

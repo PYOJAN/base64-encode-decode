@@ -1,0 +1,76 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  /* Content layer — medium dark */
+  --color-background: oklch(0.145 0.004 260);
+  --color-foreground: oklch(0.96 0.005 260);
+  --color-card: oklch(0.17 0.005 260);
+  --color-card-foreground: oklch(0.96 0.005 260);
+  --color-popover: oklch(0.17 0.005 260);
+  --color-popover-foreground: oklch(0.96 0.005 260);
+
+  /* Primary — red/coral from logo */
+  --color-primary: oklch(0.62 0.22 22);
+  --color-primary-foreground: oklch(0.98 0 0);
+
+  /* Neutral palette */
+  --color-secondary: oklch(0.22 0.006 260);
+  --color-secondary-foreground: oklch(0.90 0.006 260);
+  --color-muted: oklch(0.20 0.005 260);
+  --color-muted-foreground: oklch(0.60 0.01 260);
+  --color-accent: oklch(0.22 0.008 260);
+  --color-accent-foreground: oklch(0.95 0.005 260);
+  --color-destructive: oklch(0.55 0.22 27);
+  --color-destructive-foreground: oklch(0.97 0 0);
+  --color-border: oklch(0.24 0.006 260);
+  --color-input: oklch(0.24 0.006 260);
+  --color-ring: oklch(0.62 0.22 22);
+
+  /* Charts */
+  --color-chart-1: oklch(0.62 0.22 22);
+  --color-chart-2: oklch(0.70 0.17 162);
+  --color-chart-3: oklch(0.77 0.19 70);
+  --color-chart-4: oklch(0.63 0.26 304);
+  --color-chart-5: oklch(0.65 0.25 45);
+
+  /* Sidebar — darkest layer, creates the "inverted L" chrome */
+  --color-sidebar: oklch(0.09 0.005 260);
+  --color-sidebar-foreground: oklch(0.70 0.008 260);
+  --color-sidebar-primary: oklch(0.62 0.22 22);
+  --color-sidebar-primary-foreground: oklch(0.98 0 0);
+  --color-sidebar-accent: oklch(0.15 0.008 260);
+  --color-sidebar-accent-foreground: oklch(0.93 0.005 260);
+  --color-sidebar-border: oklch(0.17 0.005 260);
+  --color-sidebar-ring: oklch(0.62 0.22 22);
+
+  --radius: 0.625rem;
+  --sidebar-width: 16rem;
+  --sidebar-width-icon: 3rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: oklch(0.28 0.006 260);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.36 0.006 260);
+  }
+}

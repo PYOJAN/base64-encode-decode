@@ -1,0 +1,20 @@
+{
+  "name": "Dev Tool - Developer Utilities",
+  "short_name": "Dev Tool",
+  "description": "A collection of developer utilities right in your browser: Base64, PDF, certificates, JSON/XML/YAML formatters, hash, JWT, regex, and more.",
+  "start_url": "/base64-encode-decode/",
+  "scope": "/base64-encode-decode/",
+  "display": "standalone",
+  "background_color": "#0a0a0b",
+  "theme_color": "#0a0a0b",
+  "orientation": "any",
+  "categories": ["developer", "utilities", "productivity"],
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

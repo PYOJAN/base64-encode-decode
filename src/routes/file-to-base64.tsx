@@ -6,9 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { FileDropzone } from "@/components/file-dropzone"
-import { PageHeader } from "@/components/page-header"
-import { useClipboard } from "@/hooks/use-clipboard"
-import { useDebounce } from "@/hooks/use-debounce"
+import { ToolPageLayout } from "@/components"
+import { useClipboard, useDebounce } from "@/hooks"
 import { getBase64, formatFileSize } from "@/utils/file-reader"
 import { textToBase64 } from "@/utils/base64"
 
@@ -70,13 +69,14 @@ function FileToBase64Page() {
   const dataUriPrefix = mimeType ? `data:${mimeType};base64` : ""
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
-      <PageHeader
-        icon={FileUp}
-        title="File to Base64"
-        description="Upload a file or enter text to generate Base64 instantly."
-        badge="Encode"
-      />
+    <ToolPageLayout
+      variant="scroll"
+      icon={FileUp}
+      title="File to Base64"
+      description="Upload a file or enter text to generate Base64 instantly."
+      badge="Encode"
+      maxWidth="max-w-6xl"
+    >
 
       {/* SIDE BY SIDE SECTION */}
       <div className="grid gap-6 lg:grid-cols-2 items-stretch">
@@ -211,6 +211,6 @@ function FileToBase64Page() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </ToolPageLayout>
   )
 }

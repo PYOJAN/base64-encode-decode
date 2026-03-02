@@ -6,9 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { PageHeader } from "@/components/page-header"
-import { useClipboard } from "@/hooks/use-clipboard"
-import { useDebounce } from "@/hooks/use-debounce"
+import { ToolPageLayout, ErrorBanner } from "@/components"
+import { useClipboard, useDebounce } from "@/hooks"
 import {
   rgbToHex,
   rgbToHsl,
@@ -112,13 +111,13 @@ function ColorConverterPage() {
   const swatchHex = values ? values.hex : pickerColor
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 p-4 sm:p-6">
-      <PageHeader
-        icon={Palette}
-        title="Color Converter"
-        description="Convert colors between HEX, RGB, HSL, and HSV formats with a live preview."
-        badge="Text / Data"
-      />
+    <ToolPageLayout
+      variant="scroll"
+      icon={Palette}
+      title="Color Converter"
+      description="Convert colors between HEX, RGB, HSL, and HSV formats with a live preview."
+      badge="Text / Data"
+    >
 
       {/* Input section */}
       <Card>
@@ -170,14 +169,7 @@ function ColorConverterPage() {
       </Card>
 
       {/* Error */}
-      {error && (
-        <div className="flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2">
-          <div className="h-2 w-2 shrink-0 rounded-full bg-destructive" />
-          <p className="text-xs text-destructive font-mono break-all truncate">
-            {error}
-          </p>
-        </div>
-      )}
+      <ErrorBanner error={error} />
 
       {/* Color swatch preview */}
       {values && (
@@ -232,6 +224,6 @@ function ColorConverterPage() {
           ))}
         </div>
       )}
-    </div>
+    </ToolPageLayout>
   )
 }

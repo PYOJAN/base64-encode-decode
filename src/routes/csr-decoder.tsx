@@ -1,20 +1,24 @@
 import { useState, useEffect } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import {
-  ShieldCheck,
+  FileSearch,
   ClipboardPaste,
   Trash2,
   Upload,
   ShieldX,
   FileDigit,
+  ShieldCheck,
   Key,
   Fingerprint,
+  Puzzle,
+  Globe,
   Binary,
   Loader,
 } from "lucide-react"
 import {
-  X509Certificate,
   Pkcs10CertificateRequest,
+  SubjectAlternativeNameExtension,
+  type Extension,
 } from "@peculiar/x509"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -28,9 +32,9 @@ import {
   InfoRow,
 } from "@/components"
 import {
-  CertDetailsContent,
   DnDisplay,
   PublicKeyDisplay,
+  OtherExtensionItem,
 } from "@/components/cert-display"
 import { useClipboard, useDebounce } from "@/hooks"
 import {
@@ -45,29 +49,16 @@ import {
   extractCN,
 } from "@/utils/cert-helpers"
 
-export const Route = createFileRoute("/certificate-decoder")({
-  component: CertificateDecoderPage,
+export const Route = createFileRoute("/csr-decoder")({
+  component: CsrDecoderPage,
 })
-
-// ── Types ──
-
-interface CertResult {
-  type: "cert"
-  cert: X509Certificate
-  bytes: Uint8Array
-}
-interface CsrResult {
-  type: "csr"
-  csr: Pkcs10CertificateRequest
-  bytes: Uint8Array
-}
-type DecodeResult = CertResult | CsrResult
 
 // ── Page ──
 
-function CertificateDecoderPage() {
+function CsrDecoderPage() {
   const [input, setInput] = useState("")
-  const [result, setResult] = useState<DecodeResult | null>(null)
+  const [csr, setCsr] = useState<Pkcs10CertificateRequest | null>(null)
+  const [bytes, setBytes] = useState<Uint8Array | null>(null)
   const [error, setError] = useState("")
   const [sha256, setSha256] = useState("")
   const [sha1, setSha1] = useState("")
@@ -77,55 +68,64 @@ function CertificateDecoderPage() {
 
   useEffect(() => {
     if (!debounced.trim()) {
-      setResult(null)
+      setCsr(null)
+      setBytes(null)
       setError("")
       setSha256("")
       setSha1("")
       return
     }
     try {
-      const bytes = inputToBytes(debounced)
-      if (!bytes) {
+      const rawBytes = inputToBytes(debounced)
+      if (!rawBytes) {
         setError(
-          "Unable to parse input. Provide a PEM-encoded certificate, Base64, or hex-encoded DER."
+          "Unable to parse input. Provide a PEM-encoded CSR, Base64, or hex-encoded DER."
         )
-        setResult(null)
+        setCsr(null)
+        setBytes(null)
         return
       }
 
       const pemType = detectPemType(debounced)
 
+      // Try to parse as CSR
+      let parsed: Pkcs10CertificateRequest | null = null
       if (
         pemType === "CERTIFICATE REQUEST" ||
-        pemType === "NEW CERTIFICATE REQUEST"
+        pemType === "NEW CERTIFICATE REQUEST" ||
+        !pemType
       ) {
-        const csr = new Pkcs10CertificateRequest(bytes.buffer as ArrayBuffer)
-        setResult({ type: "csr", csr, bytes })
-        setError("")
-      } else {
         try {
-          const cert = new X509Certificate(bytes.buffer as ArrayBuffer)
-          setResult({ type: "cert", cert, bytes })
-          setError("")
+          parsed = new Pkcs10CertificateRequest(rawBytes.buffer as ArrayBuffer)
         } catch {
-          try {
-            const csr = new Pkcs10CertificateRequest(bytes.buffer as ArrayBuffer)
-            setResult({ type: "csr", csr, bytes })
-            setError("")
-          } catch {
-            setError(
-              "Unable to parse as X.509 certificate or CSR. Try the ASN.1 Decoder for raw inspection."
-            )
-            setResult(null)
-          }
+          // not a CSR
         }
       }
 
-      fingerprint(bytes, "SHA-256").then(setSha256)
-      fingerprint(bytes, "SHA-1").then(setSha1)
+      if (!parsed) {
+        // Try anyway even if PEM header doesn't match
+        try {
+          parsed = new Pkcs10CertificateRequest(rawBytes.buffer as ArrayBuffer)
+        } catch {
+          setError(
+            "Unable to parse as a Certificate Signing Request (PKCS#10). Check the input format."
+          )
+          setCsr(null)
+          setBytes(null)
+          return
+        }
+      }
+
+      setCsr(parsed)
+      setBytes(rawBytes)
+      setError("")
+
+      fingerprint(rawBytes, "SHA-256").then(setSha256)
+      fingerprint(rawBytes, "SHA-1").then(setSha1)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to parse input")
-      setResult(null)
+      setCsr(null)
+      setBytes(null)
     }
   }, [debounced])
 
@@ -154,27 +154,31 @@ function CertificateDecoderPage() {
   return (
     <ToolPageLayout
       variant="scroll"
-      icon={ShieldCheck}
-      title="Certificate Decoder"
-      description="Decode and inspect X.509 certificates and CSRs. All processing happens locally in your browser."
-      badge="PKI"
+      icon={FileSearch}
+      title="CSR Decoder"
+      description="Decode and inspect Certificate Signing Requests (PKCS#10). All processing happens locally in your browser."
+      badge="Certificate / Signing"
     >
       {/* Input */}
       <Card>
         <CardContent className="p-4 sm:p-6 space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="sm" onClick={handlePaste}>
-              {isPasting ? <Loader className="animate-spin mr-1.5 h-3.5 w-3.5" /> : <ClipboardPaste className="mr-1.5 h-3.5 w-3.5" />}
+              {isPasting ? (
+                <Loader className="animate-spin mr-1.5 h-3.5 w-3.5" />
+              ) : (
+                <ClipboardPaste className="mr-1.5 h-3.5 w-3.5" />
+              )}
               Paste
             </Button>
             <Button variant="outline" size="sm" asChild>
               <label className="cursor-pointer">
                 <Upload className="mr-1.5 h-3.5 w-3.5" />
-                Upload DER/PEM
+                Upload CSR
                 <input
                   type="file"
                   className="hidden"
-                  accept=".pem,.crt,.cer,.der,.csr,.req"
+                  accept=".pem,.csr,.req,.der,.txt"
                   onChange={handleFile}
                 />
               </label>
@@ -190,7 +194,7 @@ function CertificateDecoderPage() {
             </Button>
           </div>
           <Textarea
-            placeholder={`-----BEGIN CERTIFICATE-----\nMIIC...\n-----END CERTIFICATE-----`}
+            placeholder={`-----BEGIN CERTIFICATE REQUEST-----\nMIIC...\n-----END CERTIFICATE REQUEST-----`}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             rows={6}
@@ -206,7 +210,7 @@ function CertificateDecoderPage() {
       </Card>
 
       {/* Output */}
-      {result && (
+      {csr && bytes && (
         <Tabs defaultValue="decoded">
           <TabsList className="mb-4">
             <TabsTrigger value="decoded">Decoded</TabsTrigger>
@@ -217,19 +221,14 @@ function CertificateDecoderPage() {
           </TabsList>
 
           <TabsContent value="decoded" className="space-y-4">
-            {result.type === "cert" && (
-              <CertDetailsContent cert={result.cert} sha256={sha256} sha1={sha1} />
-            )}
-            {result.type === "csr" && (
-              <CsrView csr={result.csr} sha256={sha256} sha1={sha1} />
-            )}
+            <CsrDetailsView csr={csr} sha256={sha256} sha1={sha1} />
           </TabsContent>
 
           <TabsContent value="asn1">
             <Card>
               <CardContent className="p-4 sm:p-6">
                 <div className="rounded-md border bg-muted/20 p-3 overflow-x-auto max-h-[70vh] overflow-y-auto">
-                  <Asn1Tree bytes={result.bytes} />
+                  <Asn1Tree bytes={bytes} />
                 </div>
               </CardContent>
             </Card>
@@ -255,9 +254,9 @@ function Asn1Tree({ bytes }: { bytes: Uint8Array }) {
   }
 }
 
-// ── CSR View ──
+// ── CSR Details View ──
 
-function CsrView({
+function CsrDetailsView({
   csr,
   sha256,
   sha1,
@@ -268,8 +267,44 @@ function CsrView({
 }) {
   const subjectCN = extractCN(csr.subject)
 
+  // Extract SAN from extensions
+  let san: SubjectAlternativeNameExtension | null = null
+  const otherExtensions: Extension[] = []
+
+  try {
+    for (const ext of csr.extensions) {
+      if (ext.type === "2.5.29.17") {
+        // SubjectAlternativeNames
+        san = new SubjectAlternativeNameExtension(ext.rawData)
+      } else {
+        otherExtensions.push(ext)
+      }
+    }
+  } catch {
+    // extensions may not be available
+  }
+
+  // Parse SAN names
+  const sanNames: { type: string; value: string }[] = []
+  if (san) {
+    try {
+      for (const gn of san.names.items) {
+        if (gn.type === "dns") sanNames.push({ type: "DNS", value: gn.value })
+        else if (gn.type === "ip") sanNames.push({ type: "IP", value: gn.value })
+        else if (gn.type === "email")
+          sanNames.push({ type: "Email", value: gn.value })
+        else if (gn.type === "url")
+          sanNames.push({ type: "URI", value: gn.value })
+        else sanNames.push({ type: gn.type, value: String(gn.value) })
+      }
+    } catch {
+      // fallback
+    }
+  }
+
   return (
     <div className="space-y-4">
+      {/* Status Banner */}
       <Card className="border-sky-500/30 bg-sky-500/5">
         <CardContent className="p-4 sm:p-5">
           <div className="flex items-start gap-3">
@@ -291,10 +326,12 @@ function CsrView({
         </CardContent>
       </Card>
 
+      {/* Subject */}
       <SectionCard icon={ShieldCheck} title="Subject">
         <DnDisplay dn={csr.subject} />
       </SectionCard>
 
+      {/* Public Key Info */}
       <SectionCard icon={Key} title="Public Key Info">
         <PublicKeyDisplay
           algorithm={
@@ -306,6 +343,43 @@ function CsrView({
         />
       </SectionCard>
 
+      {/* Subject Alternative Names */}
+      {sanNames.length > 0 && (
+        <SectionCard
+          icon={Globe}
+          title={`Subject Alternative Names (${sanNames.length})`}
+        >
+          <div className="space-y-1.5">
+            {sanNames.map((n, i) => (
+              <div key={i} className="flex items-center gap-2 text-xs">
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-mono px-1.5 py-0 shrink-0"
+                >
+                  {n.type}
+                </Badge>
+                <span className="font-mono break-all">{n.value}</span>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      )}
+
+      {/* Other Extensions */}
+      {otherExtensions.length > 0 && (
+        <SectionCard
+          icon={Puzzle}
+          title={`Extensions (${otherExtensions.length})`}
+        >
+          <div className="space-y-2">
+            {otherExtensions.map((ext, i) => (
+              <OtherExtensionItem key={i} ext={ext} />
+            ))}
+          </div>
+        </SectionCard>
+      )}
+
+      {/* Fingerprints */}
       <SectionCard icon={Fingerprint} title="Fingerprints">
         <div className="space-y-2">
           <InfoRow label="SHA-256" value={formatFingerprint(sha256)} mono />

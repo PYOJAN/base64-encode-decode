@@ -8,9 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { PageHeader } from "@/components/page-header"
-import { useClipboard } from "@/hooks/use-clipboard"
-import { useDebounce } from "@/hooks/use-debounce"
+import { ToolPageLayout, ErrorBanner } from "@/components"
+import { useClipboard, useDebounce } from "@/hooks"
 
 export const Route = createFileRoute("/regex-tester")({
   component: RegexTesterPage,
@@ -152,13 +151,13 @@ function RegexTesterPage() {
   }, [debouncedTestString, matches])
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 p-4 sm:p-6">
-      <PageHeader
-        icon={SearchCode}
-        title="Regex Tester"
-        description="Test regular expressions with real-time match highlighting and group extraction."
-        badge="Text / Data"
-      />
+    <ToolPageLayout
+      variant="scroll"
+      icon={SearchCode}
+      title="Regex Tester"
+      description="Test regular expressions with real-time match highlighting and group extraction."
+      badge="Text / Data"
+    >
 
       {/* Pattern input */}
       <Card>
@@ -218,14 +217,7 @@ function RegexTesterPage() {
       </Card>
 
       {/* Error display */}
-      {error && (
-        <div className="flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2">
-          <div className="h-2 w-2 shrink-0 rounded-full bg-destructive" />
-          <p className="text-xs text-destructive font-mono break-all truncate">
-            {error}
-          </p>
-        </div>
-      )}
+      <ErrorBanner error={error} />
 
       {/* Test string */}
       <Card>
@@ -347,6 +339,6 @@ function RegexTesterPage() {
           )}
         </div>
       )}
-    </div>
+    </ToolPageLayout>
   )
 }

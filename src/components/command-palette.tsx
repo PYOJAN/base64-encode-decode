@@ -13,7 +13,7 @@ import {
   FileType, FileOutput, ShieldCheck, ArrowLeftRight,
   Globe, Binary, Fingerprint, SearchCode, Table, Palette,
   FileJson, GitCompareArrows, KeyRound, FileArchive, FileX2, Link2,
-  FilePlus2, FilePlus,
+  FilePlus2, FilePlus, FileKey, FileSearch, PenTool,
   type LucideIcon,
 } from "lucide-react"
 
@@ -52,6 +52,9 @@ const tools: ToolEntry[] = [
   { title: "CRL Parser", url: "/crl-parser", icon: FileX2, keywords: "crl revocation list" },
   { title: "Certificate Chain Validator", url: "/chain-validator", icon: Link2, keywords: "chain certificate validate issuer subject" },
   { title: "CSR Generator", url: "/csr-generator", icon: FilePlus2, keywords: "csr generate request key" },
+  { title: "PFX / PKCS#12 Converter", url: "/pfx-converter", icon: FileKey, keywords: "pfx p12 pkcs12 convert extract certificate key pem cer der" },
+  { title: "CSR Decoder", url: "/csr-decoder", icon: FileSearch, keywords: "csr decode inspect pkcs10 request" },
+  { title: "CSR Signer", url: "/csr-signer", icon: PenTool, keywords: "csr sign self-signed certificate ca" },
 ]
 
 interface CommandPaletteProps {

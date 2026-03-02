@@ -18,6 +18,7 @@ import { Route as UrlEncoderRouteImport } from './routes/url-encoder'
 import { Route as TimestampRouteImport } from './routes/timestamp'
 import { Route as RegexTesterRouteImport } from './routes/regex-tester'
 import { Route as Pkcs7ViewerRouteImport } from './routes/pkcs7-viewer'
+import { Route as PfxConverterRouteImport } from './routes/pfx-converter'
 import { Route as PemConverterRouteImport } from './routes/pem-converter'
 import { Route as PdfToBase64RouteImport } from './routes/pdf-to-base64'
 import { Route as PdfGeneratorRouteImport } from './routes/pdf-generator'
@@ -28,7 +29,9 @@ import { Route as HashGeneratorRouteImport } from './routes/hash-generator'
 import { Route as FileToBase64RouteImport } from './routes/file-to-base64'
 import { Route as DiffViewerRouteImport } from './routes/diff-viewer'
 import { Route as CsvJsonRouteImport } from './routes/csv-json'
+import { Route as CsrSignerRouteImport } from './routes/csr-signer'
 import { Route as CsrGeneratorRouteImport } from './routes/csr-generator'
+import { Route as CsrDecoderRouteImport } from './routes/csr-decoder'
 import { Route as CrlParserRouteImport } from './routes/crl-parser'
 import { Route as ColorConverterRouteImport } from './routes/color-converter'
 import { Route as ChainValidatorRouteImport } from './routes/chain-validator'
@@ -84,6 +87,11 @@ const Pkcs7ViewerRoute = Pkcs7ViewerRouteImport.update({
   path: '/pkcs7-viewer',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PfxConverterRoute = PfxConverterRouteImport.update({
+  id: '/pfx-converter',
+  path: '/pfx-converter',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PemConverterRoute = PemConverterRouteImport.update({
   id: '/pem-converter',
   path: '/pem-converter',
@@ -134,9 +142,19 @@ const CsvJsonRoute = CsvJsonRouteImport.update({
   path: '/csv-json',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CsrSignerRoute = CsrSignerRouteImport.update({
+  id: '/csr-signer',
+  path: '/csr-signer',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CsrGeneratorRoute = CsrGeneratorRouteImport.update({
   id: '/csr-generator',
   path: '/csr-generator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CsrDecoderRoute = CsrDecoderRouteImport.update({
+  id: '/csr-decoder',
+  path: '/csr-decoder',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CrlParserRoute = CrlParserRouteImport.update({
@@ -195,7 +213,9 @@ export interface FileRoutesByFullPath {
   '/chain-validator': typeof ChainValidatorRoute
   '/color-converter': typeof ColorConverterRoute
   '/crl-parser': typeof CrlParserRoute
+  '/csr-decoder': typeof CsrDecoderRoute
   '/csr-generator': typeof CsrGeneratorRoute
+  '/csr-signer': typeof CsrSignerRoute
   '/csv-json': typeof CsvJsonRoute
   '/diff-viewer': typeof DiffViewerRoute
   '/file-to-base64': typeof FileToBase64Route
@@ -206,6 +226,7 @@ export interface FileRoutesByFullPath {
   '/pdf-generator': typeof PdfGeneratorRoute
   '/pdf-to-base64': typeof PdfToBase64Route
   '/pem-converter': typeof PemConverterRoute
+  '/pfx-converter': typeof PfxConverterRoute
   '/pkcs7-viewer': typeof Pkcs7ViewerRoute
   '/regex-tester': typeof RegexTesterRoute
   '/timestamp': typeof TimestampRoute
@@ -226,7 +247,9 @@ export interface FileRoutesByTo {
   '/chain-validator': typeof ChainValidatorRoute
   '/color-converter': typeof ColorConverterRoute
   '/crl-parser': typeof CrlParserRoute
+  '/csr-decoder': typeof CsrDecoderRoute
   '/csr-generator': typeof CsrGeneratorRoute
+  '/csr-signer': typeof CsrSignerRoute
   '/csv-json': typeof CsvJsonRoute
   '/diff-viewer': typeof DiffViewerRoute
   '/file-to-base64': typeof FileToBase64Route
@@ -237,6 +260,7 @@ export interface FileRoutesByTo {
   '/pdf-generator': typeof PdfGeneratorRoute
   '/pdf-to-base64': typeof PdfToBase64Route
   '/pem-converter': typeof PemConverterRoute
+  '/pfx-converter': typeof PfxConverterRoute
   '/pkcs7-viewer': typeof Pkcs7ViewerRoute
   '/regex-tester': typeof RegexTesterRoute
   '/timestamp': typeof TimestampRoute
@@ -258,7 +282,9 @@ export interface FileRoutesById {
   '/chain-validator': typeof ChainValidatorRoute
   '/color-converter': typeof ColorConverterRoute
   '/crl-parser': typeof CrlParserRoute
+  '/csr-decoder': typeof CsrDecoderRoute
   '/csr-generator': typeof CsrGeneratorRoute
+  '/csr-signer': typeof CsrSignerRoute
   '/csv-json': typeof CsvJsonRoute
   '/diff-viewer': typeof DiffViewerRoute
   '/file-to-base64': typeof FileToBase64Route
@@ -269,6 +295,7 @@ export interface FileRoutesById {
   '/pdf-generator': typeof PdfGeneratorRoute
   '/pdf-to-base64': typeof PdfToBase64Route
   '/pem-converter': typeof PemConverterRoute
+  '/pfx-converter': typeof PfxConverterRoute
   '/pkcs7-viewer': typeof Pkcs7ViewerRoute
   '/regex-tester': typeof RegexTesterRoute
   '/timestamp': typeof TimestampRoute
@@ -291,7 +318,9 @@ export interface FileRouteTypes {
     | '/chain-validator'
     | '/color-converter'
     | '/crl-parser'
+    | '/csr-decoder'
     | '/csr-generator'
+    | '/csr-signer'
     | '/csv-json'
     | '/diff-viewer'
     | '/file-to-base64'
@@ -302,6 +331,7 @@ export interface FileRouteTypes {
     | '/pdf-generator'
     | '/pdf-to-base64'
     | '/pem-converter'
+    | '/pfx-converter'
     | '/pkcs7-viewer'
     | '/regex-tester'
     | '/timestamp'
@@ -322,7 +352,9 @@ export interface FileRouteTypes {
     | '/chain-validator'
     | '/color-converter'
     | '/crl-parser'
+    | '/csr-decoder'
     | '/csr-generator'
+    | '/csr-signer'
     | '/csv-json'
     | '/diff-viewer'
     | '/file-to-base64'
@@ -333,6 +365,7 @@ export interface FileRouteTypes {
     | '/pdf-generator'
     | '/pdf-to-base64'
     | '/pem-converter'
+    | '/pfx-converter'
     | '/pkcs7-viewer'
     | '/regex-tester'
     | '/timestamp'
@@ -353,7 +386,9 @@ export interface FileRouteTypes {
     | '/chain-validator'
     | '/color-converter'
     | '/crl-parser'
+    | '/csr-decoder'
     | '/csr-generator'
+    | '/csr-signer'
     | '/csv-json'
     | '/diff-viewer'
     | '/file-to-base64'
@@ -364,6 +399,7 @@ export interface FileRouteTypes {
     | '/pdf-generator'
     | '/pdf-to-base64'
     | '/pem-converter'
+    | '/pfx-converter'
     | '/pkcs7-viewer'
     | '/regex-tester'
     | '/timestamp'
@@ -385,7 +421,9 @@ export interface RootRouteChildren {
   ChainValidatorRoute: typeof ChainValidatorRoute
   ColorConverterRoute: typeof ColorConverterRoute
   CrlParserRoute: typeof CrlParserRoute
+  CsrDecoderRoute: typeof CsrDecoderRoute
   CsrGeneratorRoute: typeof CsrGeneratorRoute
+  CsrSignerRoute: typeof CsrSignerRoute
   CsvJsonRoute: typeof CsvJsonRoute
   DiffViewerRoute: typeof DiffViewerRoute
   FileToBase64Route: typeof FileToBase64Route
@@ -396,6 +434,7 @@ export interface RootRouteChildren {
   PdfGeneratorRoute: typeof PdfGeneratorRoute
   PdfToBase64Route: typeof PdfToBase64Route
   PemConverterRoute: typeof PemConverterRoute
+  PfxConverterRoute: typeof PfxConverterRoute
   Pkcs7ViewerRoute: typeof Pkcs7ViewerRoute
   RegexTesterRoute: typeof RegexTesterRoute
   TimestampRoute: typeof TimestampRoute
@@ -472,6 +511,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Pkcs7ViewerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pfx-converter': {
+      id: '/pfx-converter'
+      path: '/pfx-converter'
+      fullPath: '/pfx-converter'
+      preLoaderRoute: typeof PfxConverterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pem-converter': {
       id: '/pem-converter'
       path: '/pem-converter'
@@ -542,11 +588,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CsvJsonRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/csr-signer': {
+      id: '/csr-signer'
+      path: '/csr-signer'
+      fullPath: '/csr-signer'
+      preLoaderRoute: typeof CsrSignerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/csr-generator': {
       id: '/csr-generator'
       path: '/csr-generator'
       fullPath: '/csr-generator'
       preLoaderRoute: typeof CsrGeneratorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/csr-decoder': {
+      id: '/csr-decoder'
+      path: '/csr-decoder'
+      fullPath: '/csr-decoder'
+      preLoaderRoute: typeof CsrDecoderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/crl-parser': {
@@ -625,7 +685,9 @@ const rootRouteChildren: RootRouteChildren = {
   ChainValidatorRoute: ChainValidatorRoute,
   ColorConverterRoute: ColorConverterRoute,
   CrlParserRoute: CrlParserRoute,
+  CsrDecoderRoute: CsrDecoderRoute,
   CsrGeneratorRoute: CsrGeneratorRoute,
+  CsrSignerRoute: CsrSignerRoute,
   CsvJsonRoute: CsvJsonRoute,
   DiffViewerRoute: DiffViewerRoute,
   FileToBase64Route: FileToBase64Route,
@@ -636,6 +698,7 @@ const rootRouteChildren: RootRouteChildren = {
   PdfGeneratorRoute: PdfGeneratorRoute,
   PdfToBase64Route: PdfToBase64Route,
   PemConverterRoute: PemConverterRoute,
+  PfxConverterRoute: PfxConverterRoute,
   Pkcs7ViewerRoute: Pkcs7ViewerRoute,
   RegexTesterRoute: RegexTesterRoute,
   TimestampRoute: TimestampRoute,

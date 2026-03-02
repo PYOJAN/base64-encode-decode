@@ -12,7 +12,6 @@ import {
   ShieldCheck,
   ArrowLeftRight,
   Globe,
-
   Binary,
   Fingerprint,
   SearchCode,
@@ -26,6 +25,10 @@ import {
   Link2,
   FilePlus2,
   FilePlus,
+  FileKey,
+  FileSearch,
+  PenTool,
+  ChevronRight,
   type LucideIcon,
 } from "lucide-react"
 import {
@@ -42,6 +45,11 @@ import {
   SidebarSeparator,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible"
 
 interface NavItem {
   title: string
@@ -70,7 +78,6 @@ const navGroups: NavGroup[] = [
       { title: "Base64 to File", url: "/base64-to-file", icon: FileOutput },
       { title: "Base64 to Text", url: "/base64-to-text", icon: FileText },
       { title: "URL Encoder", url: "/url-encoder", icon: Globe },
-
       { title: "Number Base", url: "/number-base", icon: Binary },
       { title: "UUID Generator", url: "/uuid-generator", icon: Fingerprint },
     ],
@@ -93,6 +100,9 @@ const navGroups: NavGroup[] = [
       { title: "CRL Parser", url: "/crl-parser", icon: FileX2 },
       { title: "Chain Validator", url: "/chain-validator", icon: Link2 },
       { title: "CSR Generator", url: "/csr-generator", icon: FilePlus2 },
+      { title: "CSR Decoder", url: "/csr-decoder", icon: FileSearch },
+      { title: "CSR Signer", url: "/csr-signer", icon: PenTool },
+      { title: "PFX Converter", url: "/pfx-converter", icon: FileKey },
     ],
   },
   {
@@ -160,34 +170,57 @@ export function AppSidebar() {
 
       <SidebarSeparator />
 
-      {/* Navigation */}
+      {/* Navigation with collapsible category groups */}
       <SidebarContent>
-        {navGroups.map((group) => (
-          <SidebarGroup key={group.label}>
-            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {group.items.map((item) => {
-                  const active = currentPath === item.url
-                  return (
-                    <SidebarMenuItem key={item.url}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={active}
-                        tooltip={item.title}
-                      >
-                        <Link to={item.url}>
-                          <item.icon />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        {navGroups.map((group) => {
+          const hasActiveItem = group.items.some(
+            (item) => currentPath === item.url,
+          )
+
+          return (
+            <Collapsible
+              key={group.label}
+              defaultOpen={hasActiveItem}
+              className="group/collapsible"
+            >
+              <SidebarGroup>
+                <SidebarGroupLabel
+                  asChild
+                  className="group/label cursor-pointer select-none hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors duration-150"
+                >
+                  <CollapsibleTrigger>
+                    <span className="absolute inset-y-1 left-0 w-[3px] rounded-full bg-sidebar-primary/70 opacity-0 transition-opacity duration-150 group-hover/label:opacity-100" />
+                    {group.label}
+                    <ChevronRight className="ml-auto size-3.5 text-sidebar-foreground/30 transition-all duration-200 group-hover/label:text-sidebar-foreground/70 group-data-[state=open]/collapsible:rotate-90" />
+                  </CollapsibleTrigger>
+                </SidebarGroupLabel>
+                <CollapsibleContent>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {group.items.map((item) => {
+                        const active = currentPath === item.url
+                        return (
+                          <SidebarMenuItem key={item.url}>
+                            <SidebarMenuButton
+                              asChild
+                              isActive={active}
+                              tooltip={item.title}
+                            >
+                              <Link to={item.url}>
+                                <item.icon />
+                                <span>{item.title}</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        )
+                      })}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
+          )
+        })}
       </SidebarContent>
 
       {/* Footer */}

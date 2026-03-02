@@ -13,10 +13,9 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
-import { PageHeader } from "@/components/page-header"
+import { ToolPageLayout } from "@/components"
 import { Asn1TreeView } from "@/components/asn1-tree-view"
-import { useClipboard } from "@/hooks/use-clipboard"
-import { useDebounce } from "@/hooks/use-debounce"
+import { useClipboard, useDebounce } from "@/hooks"
 import { inputToBytes, detectPemType, bytesToHex } from "@/utils/pem"
 import { type Asn1Node, parseAsn1, getTagName } from "@/utils/asn1-parser"
 
@@ -85,13 +84,13 @@ function Asn1DecoderPage() {
   const pemType = detectPemType(input)
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 p-4 sm:p-6">
-      <PageHeader
-        icon={Binary}
-        title="ASN.1 Decoder"
-        description="Parse and inspect ASN.1 DER/BER encoded data structures. Commonly used for certificates, keys, and signatures."
-        badge="PKI"
-      />
+    <ToolPageLayout
+      variant="scroll"
+      icon={Binary}
+      title="ASN.1 Decoder"
+      description="Parse and inspect ASN.1 DER/BER encoded data structures. Commonly used for certificates, keys, and signatures."
+      badge="PKI"
+    >
 
       {/* Input */}
       <Card>
@@ -196,6 +195,6 @@ function Asn1DecoderPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </ToolPageLayout>
   )
 }

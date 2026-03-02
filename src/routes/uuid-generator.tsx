@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { PageHeader } from "@/components/page-header"
-import { useClipboard } from "@/hooks/use-clipboard"
+import { ToolPageLayout } from "@/components"
+import { useClipboard } from "@/hooks"
 
 export const Route = createFileRoute("/uuid-generator")({
   component: UuidGeneratorPage,
@@ -76,13 +76,14 @@ function UuidGeneratorPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
-      <PageHeader
-        icon={Fingerprint}
-        title="UUID Generator"
-        description="Generate random UUIDs (v4) or timestamp-based UUIDs (v7) in bulk."
-        badge="Generator"
-      />
+    <ToolPageLayout
+      variant="scroll"
+      icon={Fingerprint}
+      title="UUID Generator"
+      description="Generate random UUIDs (v4) or timestamp-based UUIDs (v7) in bulk."
+      badge="Generator"
+      maxWidth="max-w-3xl"
+    >
 
       <Card>
         <CardContent className="p-4 sm:p-6 space-y-4">
@@ -206,6 +207,6 @@ function UuidGeneratorPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </ToolPageLayout>
   )
 }

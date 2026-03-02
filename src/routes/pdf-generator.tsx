@@ -56,7 +56,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip"
-import { PageHeader } from "@/components/page-header"
+import { ToolPageLayout } from "@/components"
 import { toast } from "sonner"
 import { jsPDF } from "jspdf"
 import { cn } from "@/lib/utils"
@@ -588,13 +588,14 @@ function PdfGeneratorPage() {
   // =====================================================================
 
   return (
-    <div className="mx-auto max-w-6xl space-y-4 p-4 sm:p-6">
-      <PageHeader
-        icon={FilePlus}
-        title="PDF Generator"
-        description="Create professional PDFs — content blocks render live on the page preview."
-        badge="PDF"
-      />
+    <ToolPageLayout
+      variant="scroll"
+      icon={FilePlus}
+      title="PDF Generator"
+      description="Create professional PDFs — content blocks render live on the page preview."
+      badge="PDF"
+      maxWidth="max-w-6xl"
+    >
 
       {/* -------- Mobile view toggle -------- */}
       <div className="flex lg:hidden rounded-lg border bg-muted/30 p-0.5">
@@ -1268,6 +1269,6 @@ function PdfGeneratorPage() {
           )}
         </div>
       </div>
-    </div>
+    </ToolPageLayout>
   )
 }

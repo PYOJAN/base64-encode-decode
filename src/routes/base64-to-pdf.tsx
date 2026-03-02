@@ -1,13 +1,6 @@
 import { useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
-import {
-  FileDown,
-  ClipboardPaste,
-  Download,
-  Eye,
-  Trash2,
-  Loader,
-} from "lucide-react"
+import { FileDown, Download, Eye } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -20,8 +13,12 @@ import {
   VisuallyHidden,
 } from "@/components/ui/dialog"
 import { PdfViewer } from "@/components/pdf-viewer"
-import { PageHeader } from "@/components/page-header"
-import { useClipboard } from "@/hooks/use-clipboard"
+import {
+  ToolPageLayout,
+  PasteClearButtons,
+  ValidationDot,
+} from "@/components"
+import { useClipboard } from "@/hooks"
 import { base64ToBlob } from "@/utils/base64"
 import { isBase64 } from "@/utils/file-reader"
 import { normalizeBase64 } from "@/utils/smart-base64"
@@ -32,8 +29,7 @@ export const Route = createFileRoute("/base64-to-pdf")({
 
 function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024)
-    return `${(bytes / 1024).toFixed(2)} KB`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
 }
 
@@ -47,20 +43,13 @@ function Base64ToPdfPage() {
   const [previewOpen, setPreviewOpen] = useState(false)
   const { paste, isPasting } = useClipboard()
 
-  // Strip data URI prefix if present
   const trimmed = input.trim()
-
   const original = input.trim()
   const normalized = normalizeBase64(input)
 
-  const wasRepaired =
-    normalized &&
-    original.replace(/\s+/g, "") !== normalized
-
+  const wasRepaired = normalized && original.replace(/\s+/g, "") !== normalized
   const valid = !!normalized && isBase64(normalized)
-
-  const raw = normalized ?? "";
-
+  const raw = normalized ?? ""
   const byteSize = getBase64ByteSize(raw)
 
   const handlePaste = async () => {
@@ -70,11 +59,8 @@ function Base64ToPdfPage() {
 
   const handleDownload = () => {
     if (!valid) return
-
     try {
       const blob = base64ToBlob(raw, "application/pdf")
-
-      // Verify PDF header
       const reader = new FileReader()
       reader.onload = () => {
         const text = reader.result as string
@@ -82,7 +68,6 @@ function Base64ToPdfPage() {
           alert("This Base64 does not appear to be a valid PDF.")
           return
         }
-
         const url = URL.createObjectURL(blob)
         const a = document.createElement("a")
         a.href = url
@@ -90,7 +75,6 @@ function Base64ToPdfPage() {
         a.click()
         URL.revokeObjectURL(url)
       }
-
       reader.readAsText(blob.slice(0, 5))
     } catch {
       alert("Invalid Base64 data.")
@@ -99,44 +83,27 @@ function Base64ToPdfPage() {
 
   const pdfDataUri = `data:application/pdf;base64,${raw}`
 
-
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
-      <PageHeader
-        icon={FileDown}
-        title="Base64 to PDF"
-        description="Paste a Base64 string to preview and download the decoded PDF."
-        badge="PDF Tool"
-      />
-
+    <ToolPageLayout
+      variant="scroll"
+      icon={FileDown}
+      title="Base64 to PDF"
+      description="Paste a Base64 string to preview and download the decoded PDF."
+      badge="PDF Tool"
+      maxWidth="max-w-5xl"
+    >
       <Card>
         <CardContent className="p-5 space-y-4">
           <div className="flex justify-between items-center">
             <div className="text-sm font-medium text-muted-foreground">
               Base64 Input
             </div>
-
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePaste}
-                disabled={isPasting}
-              >
-                {isPasting ? <Loader className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <ClipboardPaste className="mr-1.5 h-3.5 w-3.5" />}
-                Paste from Clipboard
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setInput("")}
-                disabled={!input}
-              >
-                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                Clear
-              </Button>
-            </div>
+            <PasteClearButtons
+              onPaste={handlePaste}
+              onClear={() => setInput("")}
+              isPasting={isPasting}
+              clearDisabled={!input}
+            />
           </div>
 
           <Textarea
@@ -149,15 +116,7 @@ function Base64ToPdfPage() {
 
           {trimmed && (
             <div className="flex items-center gap-3">
-              <div
-                className={`h-2 w-2 rounded-full ${valid ? "bg-emerald-500" : "bg-destructive"
-                  }`}
-              />
-
-              <span className="text-sm font-medium">
-                {valid ? "Valid Base64" : "Invalid Base64"}
-              </span>
-
+              <ValidationDot show valid={valid} validLabel="Valid Base64" invalidLabel="Invalid Base64" />
               {valid && (
                 <>
                   <Badge variant="outline" className="font-mono text-[10px]">
@@ -186,7 +145,6 @@ function Base64ToPdfPage() {
                 <Eye className="mr-1.5 h-4 w-4" />
                 Preview PDF
               </Button>
-
               <Button variant="outline" onClick={handleDownload}>
                 <Download className="mr-1.5 h-4 w-4" />
                 Download PDF
@@ -200,18 +158,13 @@ function Base64ToPdfPage() {
         <DialogContent className="w-[calc(100vw-16px)] h-[calc(100vh-16px)] max-w-none p-0">
           <VisuallyHidden.Root>
             <DialogTitle>PDF Preview</DialogTitle>
-            <DialogDescription>
-              Preview of the decoded PDF
-            </DialogDescription>
+            <DialogDescription>Preview of the decoded PDF</DialogDescription>
           </VisuallyHidden.Root>
-
           <div className="flex-1 min-h-0">
-            {valid && (
-              <PdfViewer data={pdfDataUri} onDownload={handleDownload} />
-            )}
+            {valid && <PdfViewer data={pdfDataUri} onDownload={handleDownload} />}
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </ToolPageLayout>
   )
 }

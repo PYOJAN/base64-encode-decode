@@ -22,8 +22,8 @@ import {
 } from "@/components/ui/dialog"
 import { FileDropzone } from "@/components/file-dropzone"
 import { PdfViewer } from "@/components/pdf-viewer"
-import { PageHeader } from "@/components/page-header"
-import { useClipboard } from "@/hooks/use-clipboard"
+import { ToolPageLayout } from "@/components"
+import { useClipboard } from "@/hooks"
 import { getBase64, formatFileSize } from "@/utils/file-reader"
 
 export const Route = createFileRoute("/pdf-to-base64")({
@@ -60,13 +60,13 @@ function PdfToBase64Page() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
-      <PageHeader
-        icon={FileUp}
-        title="PDF to Base64"
-        description="Upload a PDF file and get its Base64-encoded string. Preview before copying."
-        badge="Encode"
-      />
+    <ToolPageLayout
+      variant="scroll"
+      icon={FileUp}
+      title="PDF to Base64"
+      description="Upload a PDF file and get its Base64-encoded string. Preview before copying."
+      badge="Encode"
+    >
 
       <Card>
         <CardContent className="p-6">
@@ -179,6 +179,6 @@ function PdfToBase64Page() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </ToolPageLayout>
   )
 }

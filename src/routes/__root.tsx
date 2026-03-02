@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { createRootRoute, Outlet, useRouterState } from "@tanstack/react-router"
 import { Toaster } from "sonner"
-import { Search } from "lucide-react"
+import { GithubIcon, Search } from "lucide-react"
 import {
   SidebarProvider,
   SidebarInset,
@@ -62,6 +62,18 @@ function RootLayout() {
   const pageTitle = pageTitles[clean] ?? "Dev Tool"
 
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [stars, setStars] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("https://api.github.com/repos/pyojan/base64-encode-decode")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.stargazers_count) {
+          setStars(data.stargazers_count)
+        }
+      })
+      .catch(() => { })
+  }, [])
 
   // Update document title and meta description
   useEffect(() => {
@@ -95,37 +107,60 @@ function RootLayout() {
 
   return (
     <TooltipProvider delayDuration={300}>
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b bg-background px-3 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-          <SidebarTrigger className="-ml-0.5" />
-          <Separator orientation="vertical" className="h-4" />
-          <span className="text-sm font-medium text-muted-foreground truncate">
-            {pageTitle}
-          </span>
-          <div className="ml-auto flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 gap-2 text-xs text-muted-foreground"
-              onClick={() => setPaletteOpen(true)}
-            >
-              <Search className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Search</span>
-              <kbd className="pointer-events-none hidden h-5 select-none items-center gap-0.5 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium sm:inline-flex">
-                Ctrl K
-              </kbd>
-            </Button>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b bg-background px-3 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+            <SidebarTrigger className="-ml-0.5" />
+            <Separator orientation="vertical" className="h-4" />
+            <span className="text-sm font-medium text-muted-foreground truncate">
+              {pageTitle}
+            </span>
+            <div className="ml-auto flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-2 text-xs text-muted-foreground"
+                onClick={() => setPaletteOpen(true)}
+              >
+                <Search className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Search</span>
+                <kbd className="pointer-events-none hidden h-5 select-none items-center gap-0.5 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium sm:inline-flex">
+                  Ctrl K
+                </kbd>
+              </Button>
+
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="h-8 gap-2 text-xs text-muted-foreground"
+              >
+                <a
+                  href="https://github.com/pyojan/base64-encode-decode"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2"
+                >
+                  <GithubIcon className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">GitHub</span>
+                  {stars !== null && (
+                    <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded">
+                      ⭐ {stars}
+                    </span>
+                  )}
+                </a>
+              </Button>
+
+            </div>
+          </header>
+          <div className="flex-1 overflow-auto">
+            <Outlet />
           </div>
-        </header>
-        <div className="flex-1 overflow-auto">
-          <Outlet />
-        </div>
-      </SidebarInset>
-      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
-      <Toaster theme="dark" richColors position="bottom-right" />
-    </SidebarProvider>
+        </SidebarInset>
+        <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+        <Toaster theme="dark" richColors position="bottom-right" />
+      </SidebarProvider>
     </TooltipProvider>
   )
 }

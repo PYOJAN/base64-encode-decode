@@ -124,7 +124,7 @@ function HashGeneratorPage() {
     if (!hashes) return
     const lines = ALGORITHMS.filter((a) => a.algo in hashes)
       .map(({ algo, label }) => {
-        const r = hashes[algo]
+        const r = hashes[algo] as HashResult;
         return `${label}:\n  Hex:       ${r.hex}\n  Base64:    ${r.base64}\n  Base64URL: ${r.base64url}`
       })
       .join("\n\n")

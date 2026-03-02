@@ -96,7 +96,7 @@ export async function hashTextSelected(
   )
   const record: Record<string, HashResult> = {}
   algorithms.forEach((algo, i) => {
-    record[algo] = results[i]
+    record[algo] = results[i] as HashResult;
   })
   return record
 }
@@ -112,7 +112,8 @@ export async function hashFileSelected(
   )
   const record: Record<string, HashResult> = {}
   algorithms.forEach((algo, i) => {
-    record[algo] = results[i]
+
+    record[algo] = results[i] as HashResult;
   })
   return record
 }

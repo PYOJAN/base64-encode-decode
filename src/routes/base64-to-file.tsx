@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
-import { FileDown, ClipboardPaste, Download, Eye, Trash2 } from "lucide-react"
+import { FileDown, ClipboardPaste, Download, Eye, Trash2, Loader } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -26,10 +26,12 @@ export const Route = createFileRoute("/base64-to-file")({
 function Base64ToFilePage() {
   const [input, setInput] = useState("")
   const [previewOpen, setPreviewOpen] = useState(false)
-  const { paste } = useClipboard()
+
+  const { paste, isPasting } = useClipboard()
 
   const { data, mimeType } = extractBase64Data(input.trim())
   const valid = data.length > 0 && isBase64(data)
+
   const detectedType = mimeType ?? "application/octet-stream"
   const isPdf = detectedType === "application/pdf"
   const isImage = detectedType.startsWith("image/")
@@ -41,10 +43,12 @@ function Base64ToFilePage() {
 
   const handleDownload = () => {
     if (!valid) return
+
     const blob = base64ToBlob(data, detectedType)
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     const ext = detectedType.split("/")[1] || "bin"
+
     a.href = url
     a.download = `decoded-file.${ext}`
     a.click()
@@ -52,7 +56,7 @@ function Base64ToFilePage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 p-4 sm:p-6">
+    <div className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
       <PageHeader
         icon={FileDown}
         title="Base64 to File"
@@ -62,11 +66,19 @@ function Base64ToFilePage() {
 
       <Card>
         <CardContent className="p-6 space-y-4">
+
+          {/* Toolbar */}
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handlePaste}>
-              <ClipboardPaste className="mr-1.5 h-3.5 w-3.5" />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePaste}
+              disabled={isPasting}
+            >
+              {isPasting ? <Loader className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <ClipboardPaste className="mr-1.5 h-3.5 w-3.5" />}
               Paste from Clipboard
             </Button>
+
             <Button
               variant="ghost"
               size="sm"
@@ -78,6 +90,7 @@ function Base64ToFilePage() {
             </Button>
           </div>
 
+          {/* Input */}
           <Textarea
             placeholder="Paste Base64 or Data URI string here..."
             value={input}
@@ -86,16 +99,19 @@ function Base64ToFilePage() {
             className="resize-none font-mono text-xs leading-relaxed"
           />
 
+          {/* Validation */}
           {input.trim() && (
             <div className="flex items-center gap-2">
               <div
-                className={`h-2 w-2 rounded-full ${valid ? "bg-emerald-500" : "bg-destructive"}`}
+                className={`h-2 w-2 rounded-full ${valid ? "bg-emerald-500" : "bg-destructive"
+                  }`}
               />
               <span className="text-sm text-muted-foreground">
                 {valid
-                  ? `Valid Base64 detected`
+                  ? "Valid Base64 detected"
                   : "Not a valid Base64 string"}
               </span>
+
               {valid && (
                 <Badge variant="secondary" className="font-mono text-[10px]">
                   {detectedType}
@@ -114,6 +130,7 @@ function Base64ToFilePage() {
                 <Download className="mr-1.5 h-4 w-4" />
                 Download File
               </Button>
+
               {(isPdf || isImage) && (
                 <Button
                   variant="outline"
@@ -143,12 +160,16 @@ function Base64ToFilePage() {
           <DialogHeader>
             <DialogTitle>File Preview</DialogTitle>
             <VisuallyHidden.Root>
-              <DialogDescription>Preview of decoded file</DialogDescription>
+              <DialogDescription>
+                Preview of decoded file
+              </DialogDescription>
             </VisuallyHidden.Root>
           </DialogHeader>
+
           {isPdf && (
             <PdfViewer data={`data:application/pdf;base64,${data}`} />
           )}
+
           {isImage && (
             <img
               src={`data:${detectedType};base64,${data}`}

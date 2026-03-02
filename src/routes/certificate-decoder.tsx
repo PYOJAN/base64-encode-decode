@@ -20,6 +20,7 @@ import {
   Award,
   Info,
   Binary,
+  Loader
 } from "lucide-react"
 import {
   X509Certificate,
@@ -100,7 +101,7 @@ function CertificateDecoderPage() {
   const [error, setError] = useState("")
   const [sha256, setSha256] = useState("")
   const [sha1, setSha1] = useState("")
-  const { paste, copy } = useClipboard()
+  const { paste, isPasting } = useClipboard()
 
   const debounced = useDebounce(input, 300)
 
@@ -194,7 +195,7 @@ function CertificateDecoderPage() {
         <CardContent className="p-4 sm:p-6 space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="sm" onClick={handlePaste}>
-              <ClipboardPaste className="mr-1.5 h-3.5 w-3.5" />
+              {isPasting ? <Loader className="animate-spin mr-1.5 h-3.5 w-3.5" /> : <ClipboardPaste className="mr-1.5 h-3.5 w-3.5" />}
               Paste
             </Button>
             <Button variant="outline" size="sm" asChild>
@@ -248,10 +249,10 @@ function CertificateDecoderPage() {
 
           <TabsContent value="decoded" className="space-y-4">
             {result.type === "cert" && (
-              <CertificateView cert={result.cert} sha256={sha256} sha1={sha1} copy={copy} />
+              <CertificateView cert={result.cert} sha256={sha256} sha1={sha1} />
             )}
             {result.type === "csr" && (
-              <CsrView csr={result.csr} sha256={sha256} sha1={sha1} copy={copy} />
+              <CsrView csr={result.csr} sha256={sha256} sha1={sha1} />
             )}
           </TabsContent>
 
@@ -291,12 +292,10 @@ function CertificateView({
   cert,
   sha256,
   sha1,
-  copy,
 }: {
   cert: X509Certificate
   sha256: string
   sha1: string
-  copy: (text: string, label?: string) => Promise<void>
 }) {
   const now = new Date()
   const notBefore = cert.notBefore
@@ -401,13 +400,12 @@ function CertificateView({
             <div className="space-y-1">
               <div className="h-1.5 rounded-full bg-muted/50 overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all ${
-                    isExpired
+                  className={`h-full rounded-full transition-all ${isExpired
                       ? "bg-destructive"
                       : progressPct > 90
                         ? "bg-amber-500"
                         : "bg-emerald-500"
-                  }`}
+                    }`}
                   style={{ width: `${progressPct}%` }}
                 />
               </div>
@@ -424,7 +422,7 @@ function CertificateView({
       <Section icon={FileDigit} title="Certificate Details">
         <div className="space-y-2">
           <InfoRow label="Version" value="3 (0x2)" />
-          <InfoRow label="Serial Number" value={formatSerial(cert.serialNumber)} mono copy={copy} />
+          <InfoRow label="Serial Number" value={formatSerial(cert.serialNumber)} mono />
           <InfoRow
             label="Signature Algorithm"
             value={formatAlgorithm(cert.signatureAlgorithm)}
@@ -484,10 +482,10 @@ function CertificateView({
         <Section icon={Key} title="Key Identifiers">
           <div className="space-y-2">
             {ski && (
-              <InfoRow label="Subject Key ID" value={ski.keyId} mono copy={copy} />
+              <InfoRow label="Subject Key ID" value={ski.keyId} mono />
             )}
             {aki?.keyId && (
-              <InfoRow label="Authority Key ID" value={aki.keyId} mono copy={copy} />
+              <InfoRow label="Authority Key ID" value={aki.keyId} mono />
             )}
           </div>
         </Section>
@@ -516,8 +514,8 @@ function CertificateView({
       {/* ── Fingerprints ── */}
       <Section icon={Fingerprint} title="Fingerprints">
         <div className="space-y-2">
-          <InfoRow label="SHA-256" value={formatFingerprint(sha256)} mono copy={copy} />
-          <InfoRow label="SHA-1" value={formatFingerprint(sha1)} mono copy={copy} />
+          <InfoRow label="SHA-256" value={formatFingerprint(sha256)} mono />
+          <InfoRow label="SHA-1" value={formatFingerprint(sha1)} mono />
         </div>
       </Section>
     </div>
@@ -530,12 +528,10 @@ function CsrView({
   csr,
   sha256,
   sha1,
-  copy,
 }: {
   csr: Pkcs10CertificateRequest
   sha256: string
   sha1: string
-  copy: (text: string, label?: string) => Promise<void>
 }) {
   const subjectCN = extractCN(csr.subject)
 
@@ -579,8 +575,8 @@ function CsrView({
 
       <Section icon={Fingerprint} title="Fingerprints">
         <div className="space-y-2">
-          <InfoRow label="SHA-256" value={formatFingerprint(sha256)} mono copy={copy} />
-          <InfoRow label="SHA-1" value={formatFingerprint(sha1)} mono copy={copy} />
+          <InfoRow label="SHA-256" value={formatFingerprint(sha256)} mono />
+          <InfoRow label="SHA-1" value={formatFingerprint(sha1)} mono />
         </div>
       </Section>
     </div>
@@ -860,14 +856,15 @@ function InfoRow({
   label,
   value,
   mono,
-  copy,
 }: {
   label: string
   value: string
   mono?: boolean
-  copy?: (text: string, label?: string) => Promise<void>
 }) {
   if (!value) return null
+
+  const { copy, isCopying } = useClipboard()
+
   return (
     <div className="flex items-start gap-3 text-xs group">
       <span className="text-muted-foreground w-36 shrink-0 pt-0.5 text-right">
@@ -885,7 +882,11 @@ function InfoRow({
               onClick={() => copy(value, `${label} copied`)}
               className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
             >
-              <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+              {isCopying ? (
+                <Loader className="h-3 w-3 text-muted-foreground" />
+              ) : (
+                <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+              )}
             </button>
           </TooltipTrigger>
           <TooltipContent>Copy</TooltipContent>

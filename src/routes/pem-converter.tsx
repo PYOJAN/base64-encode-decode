@@ -7,6 +7,7 @@ import {
   Upload,
   Copy,
   Download,
+  Loader as Spinner,
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -33,7 +34,7 @@ function PemConverterPage() {
   const [bytes, setBytes] = useState<Uint8Array | null>(null)
   const [detectedType, setDetectedType] = useState<string | null>(null)
   const [error, setError] = useState("")
-  const { paste, copy } = useClipboard()
+  const { paste, copy, isCopying, isPasting } = useClipboard()
 
   const debounced = useDebounce(input, 300)
 
@@ -113,7 +114,14 @@ function PemConverterPage() {
         <CardContent className="p-4 sm:p-6 space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="sm" onClick={handlePaste}>
-              <ClipboardPaste className="mr-1.5 h-3.5 w-3.5" />
+              {isPasting ? (
+                <div className="flex items-center">
+                  <Spinner className="mr-1.5 h-3.5 w-3.5" />
+                  Pasting...
+                </div>
+              ) : (
+                <ClipboardPaste className="mr-1.5 h-3.5 w-3.5" />
+              )}
               Paste
             </Button>
             <Button variant="outline" size="sm" asChild>
@@ -168,7 +176,6 @@ function PemConverterPage() {
           <OutputCard
             title="PEM Format"
             value={pemOutput}
-            copy={copy}
             label="PEM"
           />
 
@@ -176,7 +183,6 @@ function PemConverterPage() {
           <OutputCard
             title="Raw Base64 (no headers)"
             value={b64Output}
-            copy={copy}
             label="Base64"
           />
 
@@ -184,7 +190,6 @@ function PemConverterPage() {
           <OutputCard
             title="Hex Dump"
             value={hexOutput}
-            copy={copy}
             label="Hex"
           />
 
@@ -214,14 +219,15 @@ function PemConverterPage() {
 function OutputCard({
   title,
   value,
-  copy,
   label,
 }: {
   title: string
   value: string
-  copy: (text: string, label?: string) => Promise<void>
   label: string
 }) {
+
+  const { isCopying, copy } = useClipboard();
+
   return (
     <Card>
       <CardContent className="p-4 sm:p-6 space-y-3">
@@ -232,8 +238,14 @@ function OutputCard({
             size="sm"
             onClick={() => copy(value, `${label} copied`)}
           >
-            <Copy className="mr-1.5 h-3.5 w-3.5" />
-            Copy
+            {isCopying ? (
+              <Spinner className="text-muted-foreground h-3 w-3" />
+            ) : (
+              <>
+                <Copy className="mr-1.5 h-3.5 w-3.5" />
+                Copy
+              </>
+            )}
           </Button>
         </div>
         <Separator />

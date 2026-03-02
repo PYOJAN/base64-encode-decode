@@ -31,7 +31,7 @@ export function FileDropzone({
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       className={cn(
-        "group relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 text-center transition-all duration-200",
+        "group relative flex flex-1 min-h-60 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 text-center transition-all duration-200",
         isDragging
           ? "border-primary bg-primary/5 scale-[1.01]"
           : "border-border hover:border-primary/40 hover:bg-muted/30",

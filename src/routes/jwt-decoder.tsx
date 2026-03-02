@@ -14,6 +14,7 @@ import {
   Globe,
   Calendar,
   Shield,
+  Loader,
 } from "lucide-react"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { Card, CardContent } from "@/components/ui/card"
@@ -48,7 +49,7 @@ function JwtDecoderPage() {
   const [input, setInput] = useState("")
   const [result, setResult] = useState<JwtParts | null>(null)
   const [error, setError] = useState("")
-  const { paste, copy } = useClipboard()
+  const { paste, isPasting, copy, isCopying } = useClipboard()
 
   const debounced = useDebounce(input, 300)
 
@@ -100,7 +101,7 @@ function JwtDecoderPage() {
         <CardContent className="p-4 sm:p-6 space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="sm" onClick={handlePaste}>
-              <ClipboardPaste className="mr-1.5 h-3.5 w-3.5" />
+              {isPasting ? <Loader className="animate-spin mr-1.5 h-3.5 w-3.5" /> : <ClipboardPaste className="mr-1.5 h-3.5 w-3.5" />}
               Paste
             </Button>
             <Button variant="outline" size="sm" asChild>
@@ -148,20 +149,18 @@ function JwtDecoderPage() {
           <ExpiryBanner status={expiryStatus} />
 
           {/* Standard Claims */}
-          <StandardClaimsCard payload={result.payload} copy={copy} />
+          <StandardClaimsCard payload={result.payload} />
 
           {/* Header */}
           <JsonCard
             title="Header"
             json={result.header}
-            copy={copy}
           />
 
           {/* Payload */}
           <JsonCard
             title="Payload"
             json={result.payload}
-            copy={copy}
           />
 
           {/* Signature */}
@@ -264,11 +263,12 @@ function ExpiryBanner({
 
 function StandardClaimsCard({
   payload,
-  copy,
 }: {
   payload: Record<string, unknown>
-  copy: (text: string, label?: string) => Promise<void>
 }) {
+
+  const { copy, isCopying } = useClipboard();
+
   const claims = Object.entries(STANDARD_CLAIMS).filter(
     ([key]) => payload[key] !== undefined
   )
@@ -311,7 +311,11 @@ function StandardClaimsCard({
                       onClick={() => copy(String(displayValue), `${label} copied`)}
                       className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                     >
-                      <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                      {isCopying ? (
+                        <Loader className="h-3.5 w-3.5 animate-pulse" />
+                      ) : (
+                        <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                      )}
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>Copy</TooltipContent>
@@ -330,12 +334,12 @@ function StandardClaimsCard({
 function JsonCard({
   title,
   json,
-  copy,
 }: {
   title: string
   json: Record<string, unknown>
-  copy: (text: string, label?: string) => Promise<void>
 }) {
+
+  const { copy, isCopying } = useClipboard();
   const formatted = JSON.stringify(json, null, 2)
 
   return (
@@ -348,7 +352,11 @@ function JsonCard({
             size="sm"
             onClick={() => copy(formatted, `${title} JSON copied`)}
           >
-            <Copy className="mr-1.5 h-3.5 w-3.5" />
+            {isCopying ? (
+              <Loader className="mr-1.5 h-3.5 w-3.5 animate-pulse" />
+            ) : (
+              <Copy className="mr-1.5 h-3.5 w-3.5" />
+            )}
             Copy
           </Button>
         </div>

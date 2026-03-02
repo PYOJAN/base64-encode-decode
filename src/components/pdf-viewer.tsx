@@ -8,7 +8,7 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCw,
-  Loader2,
+  Loader,
   AlertCircle,
   Download,
   Printer,
@@ -141,7 +141,17 @@ export function PdfViewer({ data, className, onDownload }: PdfViewerProps) {
 
   const goToPage = useCallback(
     (p: number) => {
-      setCurrentPage(Math.max(1, Math.min(p, numPages)))
+      const page = Math.max(1, Math.min(p, numPages))
+      setCurrentPage(page)
+
+      // Scroll to page in main viewport
+      requestAnimationFrame(() => {
+        const el = document.getElementById(`pdf-page-${page}`)
+        el?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        })
+      })
     },
     [numPages]
   )
@@ -319,6 +329,47 @@ export function PdfViewer({ data, className, onDownload }: PdfViewerProps) {
     return !fitMode && Math.abs(scale - v) < 0.01
   }
 
+  // ── Scroll syncing ──
+  useEffect(() => {
+    const container = viewportRef.current
+    if (!container) return
+
+    const handleScroll = () => {
+      const pagesEls = pages
+        .map((p) => document.getElementById(`pdf-page-${p}`))
+        .filter(Boolean) as HTMLElement[]
+
+      if (!pagesEls.length) return
+
+      const containerTop = container.getBoundingClientRect().top
+
+      let closestPage = currentPage
+      let minDistance = Number.POSITIVE_INFINITY
+
+      for (const el of pagesEls) {
+        const rect = el.getBoundingClientRect()
+        const distance = Math.abs(rect.top - containerTop)
+
+        if (distance < minDistance) {
+          minDistance = distance
+          const pageNum = Number(el.id.replace("pdf-page-", ""))
+          closestPage = pageNum
+        }
+      }
+
+      if (closestPage !== currentPage) {
+        setCurrentPage(closestPage)
+      }
+    }
+
+    container.addEventListener("scroll", handleScroll)
+
+    return () => {
+      container.removeEventListener("scroll", handleScroll)
+    }
+  }, [pages, currentPage])
+
+
   return (
     <TooltipProvider delayDuration={300}>
       <div
@@ -331,7 +382,7 @@ export function PdfViewer({ data, className, onDownload }: PdfViewerProps) {
         tabIndex={-1}
       >
         {/* ── Toolbar ── */}
-        <div className="flex items-center gap-0.5 px-1.5 py-1 border-b bg-card shrink-0 overflow-x-auto pr-10">
+        <div className="flex items-center gap-0.5 px-1.5 py-1 border-b bg-card shrink-0 pr-10 z-50">
           {/* Thumbnail toggle */}
           {numPages > 1 && (
             <>
@@ -361,7 +412,7 @@ export function PdfViewer({ data, className, onDownload }: PdfViewerProps) {
                   const p = parseInt(pageInputValue)
                   if (p >= 1 && p <= numPages) goToPage(p)
                   else setPageInputValue(String(currentPage))
-                  ;(e.target as HTMLInputElement).blur()
+                    ; (e.target as HTMLInputElement).blur()
                 }
               }}
               onBlur={() => setPageInputValue(String(currentPage))}
@@ -498,7 +549,7 @@ export function PdfViewer({ data, className, onDownload }: PdfViewerProps) {
                           renderTextLayer={false}
                           loading={
                             <div className="flex items-center justify-center h-28">
-                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                              <Loader className="h-4 w-4 animate-spin text-muted-foreground" />
                             </div>
                           }
                         />
@@ -524,7 +575,7 @@ export function PdfViewer({ data, className, onDownload }: PdfViewerProps) {
           <div ref={viewportRef} className="flex-1 overflow-auto bg-muted/20">
             {loading && !error && (
               <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
-                <Loader2 className="h-8 w-8 animate-spin" />
+                <Loader className="h-8 w-8 animate-spin" />
                 <span className="text-sm">Loading document…</span>
               </div>
             )}
@@ -550,21 +601,28 @@ export function PdfViewer({ data, className, onDownload }: PdfViewerProps) {
               error={null}
             >
               {!loading && !error && (
-                <div className="min-h-full flex items-center justify-center p-6">
-                  <Page
-                    pageNumber={currentPage}
-                    scale={effectiveScale}
-                    rotate={rotation}
-                    onLoadSuccess={onPageLoad}
-                    renderAnnotationLayer={true}
-                    renderTextLayer={true}
-                    className="shadow-2xl rounded-sm"
-                    loading={
-                      <div className="flex items-center justify-center h-96 w-64">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      </div>
-                    }
-                  />
+                <div className="flex flex-col items-center gap-6 py-6">
+                  {pages.map((pageNumber) => (
+                    <div
+                      key={pageNumber}
+                      id={`pdf-page-${pageNumber}`}
+                      className="shadow-2xl rounded-sm bg-white"
+                    >
+                      <Page
+                        pageNumber={pageNumber}
+                        scale={effectiveScale}
+                        rotate={rotation}
+                        onLoadSuccess={pageNumber === 1 ? onPageLoad : undefined}
+                        renderAnnotationLayer={true}
+                        renderTextLayer={true}
+                        loading={
+                          <div className="flex items-center justify-center h-96 w-64">
+                            <Loader className="h-6 w-6 animate-spin text-muted-foreground" />
+                          </div>
+                        }
+                      />
+                    </div>
+                  ))}
                 </div>
               )}
             </Document>

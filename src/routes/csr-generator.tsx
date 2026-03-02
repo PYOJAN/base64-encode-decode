@@ -6,7 +6,7 @@ import {
   Trash2,
   Plus,
   X,
-  Loader2,
+  Loader,
   KeyRound,
   FileText,
 } from "lucide-react"
@@ -343,11 +343,10 @@ function CsrGeneratorPage() {
                 <button
                   key={algo.id}
                   onClick={() => setSelectedAlgo(algo.id)}
-                  className={`rounded-lg border px-3 py-2.5 text-xs font-medium transition-all ${
-                    selectedAlgo === algo.id
+                  className={`rounded-lg border px-3 py-2.5 text-xs font-medium transition-all ${selectedAlgo === algo.id
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border hover:border-primary/40 hover:bg-muted/30 text-muted-foreground"
-                  }`}
+                    }`}
                 >
                   {algo.label}
                 </button>
@@ -361,7 +360,7 @@ function CsrGeneratorPage() {
           <div className="flex flex-wrap gap-2">
             <Button onClick={handleGenerate} disabled={loading || !cn.trim()}>
               {loading ? (
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                <Loader className="mr-1.5 h-3.5 w-3.5 animate-spin" />
               ) : (
                 <FilePlus2 className="mr-1.5 h-3.5 w-3.5" />
               )}

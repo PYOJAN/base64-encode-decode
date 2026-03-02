@@ -64,18 +64,6 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Certificate / Signing",
-    items: [
-      { title: "Certificate Decoder", url: "/certificate-decoder", icon: ShieldCheck },
-      { title: "PEM / DER Converter", url: "/pem-converter", icon: ArrowLeftRight },
-      { title: "JWT Decoder", url: "/jwt-decoder", icon: KeyRound },
-      { title: "PKCS#7 / CMS Viewer", url: "/pkcs7-viewer", icon: FileArchive },
-      { title: "CRL Parser", url: "/crl-parser", icon: FileX2 },
-      { title: "Chain Validator", url: "/chain-validator", icon: Link2 },
-      { title: "CSR Generator", url: "/csr-generator", icon: FilePlus2 },
-    ],
-  },
-  {
     label: "Encode / Decode",
     items: [
       { title: "File to Base64", url: "/file-to-base64", icon: FileType },
@@ -85,6 +73,26 @@ const navGroups: NavGroup[] = [
 
       { title: "Number Base", url: "/number-base", icon: Binary },
       { title: "UUID Generator", url: "/uuid-generator", icon: Fingerprint },
+    ],
+  },
+  {
+    label: "Converters",
+    items: [
+      { title: "XML / JSON", url: "/xml-json", icon: FileCode },
+      { title: "YAML / JSON", url: "/yaml-json", icon: FileJson },
+      { title: "CSV / JSON", url: "/csv-json", icon: Table },
+    ],
+  },
+  {
+    label: "Certificate / Signing",
+    items: [
+      { title: "Certificate Decoder", url: "/certificate-decoder", icon: ShieldCheck },
+      { title: "PEM / DER Converter", url: "/pem-converter", icon: ArrowLeftRight },
+      { title: "JWT Decoder", url: "/jwt-decoder", icon: KeyRound },
+      { title: "PKCS#7 / CMS Viewer", url: "/pkcs7-viewer", icon: FileArchive },
+      { title: "CRL Parser", url: "/crl-parser", icon: FileX2 },
+      { title: "Chain Validator", url: "/chain-validator", icon: Link2 },
+      { title: "CSR Generator", url: "/csr-generator", icon: FilePlus2 },
     ],
   },
   {
@@ -100,7 +108,6 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "Regex Tester", url: "/regex-tester", icon: SearchCode },
       { title: "Diff Viewer", url: "/diff-viewer", icon: GitCompareArrows },
-      { title: "CSV / JSON", url: "/csv-json", icon: Table },
       { title: "Color Converter", url: "/color-converter", icon: Palette },
     ],
   },

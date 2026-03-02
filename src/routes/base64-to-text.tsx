@@ -1,16 +1,11 @@
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { createFileRoute } from "@tanstack/react-router"
-import { FileText, ClipboardPaste, Copy, Trash2 } from "lucide-react"
+import { FileText, ClipboardPaste, Copy, Trash2, Loader } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { PageHeader } from "@/components/page-header"
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from "@/components/ui/tooltip"
 import { useClipboard } from "@/hooks/use-clipboard"
 import { useDebounce } from "@/hooks/use-debounce"
 import { base64ToText } from "@/utils/base64"
@@ -22,9 +17,11 @@ export const Route = createFileRoute("/base64-to-text")({
 
 function Base64ToTextPage() {
   const [input, setInput] = useState("")
-  const { copy, paste } = useClipboard()
+  const inputRef = useRef<HTMLTextAreaElement | null>(null)
 
+  const { copy, paste, isCopying, isPasting } = useClipboard()
   const debouncedInput = useDebounce(input, 300)
+
   const trimmed = debouncedInput.trim()
   const valid = trimmed.length > 0 && isBase64(trimmed)
 
@@ -37,106 +34,241 @@ function Base64ToTextPage() {
     }
   }
 
-  const handlePaste = async () => {
-    const text = await paste()
-    if (text) setInput(text)
-  }
-
   const charCount = decoded.length
   const lineCount = decoded ? decoded.split("\n").length : 0
 
+  const handlePaste = async () => {
+    const text = await paste()
+    if (text) {
+      setInput(text)
+      setTimeout(() => inputRef.current?.focus(), 0)
+    }
+  }
+
+  const handleClear = () => {
+    setInput("")
+    inputRef.current?.focus()
+  }
+
+  // return (
+  //   <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
+  //     <PageHeader
+  //       icon={FileText}
+  //       title="Base64 to Text"
+  //       description="Decode a Base64 string into readable text instantly."
+  //       badge="Decode"
+  //     />
+
+  //     <div className="grid gap-6 lg:grid-cols-2">
+  //       {/* INPUT CARD */}
+  //       <Card className="flex flex-col">
+  //         <CardContent className="flex flex-col flex-1 p-5 space-y-4">
+
+  //           {/* Header */}
+  //           <div className="flex items-center justify-between">
+  //             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+  //               Base64 Input
+  //             </h2>
+
+  //             <div className="flex gap-1.5">
+  //               <Button
+  //                 variant="outline"
+  //                 size="sm"
+  //                 onClick={handlePaste}
+  //                 disabled={isPasting}
+  //               >
+  //                 <ClipboardPaste className="mr-1 h-3.5 w-3.5" />
+  //                 {isPasting ? "Reading..." : "Paste"}
+  //               </Button>
+
+  //               <Button
+  //                 variant="ghost"
+  //                 size="sm"
+  //                 onClick={handleClear}
+  //                 disabled={!input}
+  //               >
+  //                 <Trash2 className="h-3.5 w-3.5" />
+  //               </Button>
+  //             </div>
+  //           </div>
+
+  //           {/* Textarea */}
+  //           <Textarea
+  //             ref={inputRef}
+  //             placeholder="Paste Base64 string here..."
+  //             value={input}
+  //             onChange={(e) => setInput(e.target.value)}
+  //             className="flex-1 min-h-[220px] resize-y font-mono text-xs leading-relaxed"
+  //           />
+
+  //           {/* Status */}
+  //           {trimmed && (
+  //             <div className="flex items-center gap-3">
+  //               <div
+  //                 className={`h-2 w-2 rounded-full ${
+  //                   valid ? "bg-emerald-500" : "bg-destructive"
+  //                 }`}
+  //               />
+
+  //               <span className="text-xs text-muted-foreground">
+  //                 {valid ? "Valid Base64 detected" : "Invalid Base64"}
+  //               </span>
+
+  //               {valid && (
+  //                 <Badge variant="secondary" className="ml-auto text-[10px] font-mono">
+  //                   {trimmed.length} chars
+  //                 </Badge>
+  //               )}
+  //             </div>
+  //           )}
+  //         </CardContent>
+  //       </Card>
+
+  //       {/* OUTPUT CARD */}
+  //       <Card className="flex flex-col">
+  //         <CardContent className="flex flex-col flex-1 p-5 space-y-4">
+
+  //           {/* Header */}
+  //           <div className="flex items-center justify-between">
+  //             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+  //               Decoded Text
+  //             </h2>
+
+  //             <Button
+  //               variant="outline"
+  //               size="sm"
+  //               disabled={!decoded || isCopying}
+  //               onClick={() => copy(decoded)}
+  //             >
+  //               <Copy className="mr-1 h-3.5 w-3.5" />
+  //               {isCopying ? "Copying..." : "Copy"}
+  //             </Button>
+  //           </div>
+
+  //           {/* Output */}
+  //           <Textarea
+  //             readOnly
+  //             value={decoded}
+  //             placeholder="Decoded text will appear here..."
+  //             className="flex-1 min-h-[220px] resize-y font-mono text-xs leading-relaxed bg-muted/30"
+  //           />
+
+  //           {/* Metadata */}
+  //           {decoded && (
+  //             <div className="flex items-center gap-3">
+  //               <Badge variant="outline" className="text-[10px] font-mono">
+  //                 {charCount} chars
+  //               </Badge>
+  //               <Badge variant="outline" className="text-[10px] font-mono">
+  //                 {lineCount} {lineCount === 1 ? "line" : "lines"}
+  //               </Badge>
+  //             </div>
+  //           )}
+  //         </CardContent>
+  //       </Card>
+  //     </div>
+  //   </div>
+  // )
+
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
+    <div className="flex flex-col h-[calc(100vh-3rem)] p-4 sm:p-6 gap-6">
       <PageHeader
         icon={FileText}
         title="Base64 to Text"
-        description="Decode a Base64 string to human-readable text in real time."
+        description="Decode a Base64 string into readable text instantly."
         badge="Decode"
       />
 
-      <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
-        {/* Input */}
-        <Card className="flex flex-col">
-          <CardContent className="flex flex-col flex-1 p-4 sm:p-5 space-y-3">
-            <div className="flex items-center justify-between">
+      {/* Full Height Grid */}
+      <div className="flex-1 min-h-0 grid gap-6 lg:grid-cols-2">
+
+        {/* INPUT CARD */}
+        <Card className="flex flex-col min-h-0">
+          <CardContent className="flex flex-col flex-1 min-h-0 p-5 gap-4">
+
+            {/* Header */}
+            <div className="flex items-center justify-between shrink-0">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Base64 Input
               </h2>
-              <div className="flex gap-1">
-                <Button variant="ghost" size="sm" onClick={handlePaste}>
-                  <ClipboardPaste className="mr-1 h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Paste</span>
+
+              <div className="flex gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePaste}
+                  disabled={isPasting}
+                >
+                  {isPasting ? <Loader className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <ClipboardPaste className="mr-1.5 h-3.5 w-3.5" />}
+                  Paste from Clipboard
                 </Button>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setInput("")}
-                      disabled={!input}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Clear</TooltipContent>
-                </Tooltip>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClear}
+                  disabled={!input}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
               </div>
             </div>
+
+            {/* Textarea fills remaining space */}
             <Textarea
-              placeholder="Paste Base64 string here..."
+              ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="flex-1 min-h-[180px] sm:min-h-[240px] resize-y font-mono text-xs leading-relaxed"
+              placeholder="Paste Base64 string here..."
+              className="flex-1 min-h-0 resize-none font-mono text-xs leading-relaxed"
             />
+
+            {/* Status */}
             {trimmed && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3 shrink-0">
                 <div
-                  className={`h-2 w-2 rounded-full ${valid ? "bg-emerald-500" : "bg-destructive"}`}
+                  className={`h-2 w-2 rounded-full ${valid ? "bg-emerald-500" : "bg-destructive"
+                    }`}
                 />
                 <span className="text-xs text-muted-foreground">
                   {valid ? "Valid Base64" : "Invalid Base64"}
                 </span>
-                {valid && (
-                  <Badge variant="secondary" className="text-[10px] font-mono ml-auto">
-                    {trimmed.length} chars
-                  </Badge>
-                )}
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Arrow indicator (hidden on mobile, shown on lg) */}
-        <div className="hidden lg:flex items-center justify-center absolute left-1/2 top-1/2 -translate-x-1/2 pointer-events-none" aria-hidden>
-          {/* This is handled by the grid gap */}
-        </div>
+        {/* OUTPUT CARD */}
+        <Card className="flex flex-col min-h-0">
+          <CardContent className="flex flex-col flex-1 min-h-0 p-5 gap-4">
 
-        {/* Output */}
-        <Card className="flex flex-col">
-          <CardContent className="flex flex-col flex-1 p-4 sm:p-5 space-y-3">
-            <div className="flex items-center justify-between">
+            {/* Header */}
+            <div className="flex items-center justify-between shrink-0">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Decoded Text
               </h2>
-              {decoded && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => copy(decoded)}
-                >
-                  <Copy className="mr-1 h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Copy</span>
-                </Button>
-              )}
+
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!decoded || isCopying}
+                onClick={() => copy(decoded)}
+              >
+                <Copy className="mr-1 h-3.5 w-3.5" />
+                {isCopying ? "Copying..." : "Copy"}
+              </Button>
             </div>
+
+            {/* Output fills remaining */}
             <Textarea
               readOnly
               value={decoded}
               placeholder="Decoded text will appear here..."
-              className="flex-1 min-h-[180px] sm:min-h-[240px] resize-y font-mono text-xs leading-relaxed bg-muted/30"
+              className="flex-1 min-h-0 resize-none font-mono text-xs leading-relaxed bg-muted/30"
             />
+
             {decoded && (
-              <div className="flex items-center gap-3">
+              <div className="flex gap-3 shrink-0">
                 <Badge variant="outline" className="text-[10px] font-mono">
                   {charCount} chars
                 </Badge>

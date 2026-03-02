@@ -9,7 +9,9 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as YamlJsonRouteImport } from './routes/yaml-json'
 import { Route as YamlFormatterRouteImport } from './routes/yaml-formatter'
+import { Route as XmlJsonRouteImport } from './routes/xml-json'
 import { Route as XmlFormatterRouteImport } from './routes/xml-formatter'
 import { Route as UuidGeneratorRouteImport } from './routes/uuid-generator'
 import { Route as UrlEncoderRouteImport } from './routes/url-encoder'
@@ -37,9 +39,19 @@ import { Route as Base64ToFileRouteImport } from './routes/base64-to-file'
 import { Route as Asn1DecoderRouteImport } from './routes/asn1-decoder'
 import { Route as IndexRouteImport } from './routes/index'
 
+const YamlJsonRoute = YamlJsonRouteImport.update({
+  id: '/yaml-json',
+  path: '/yaml-json',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const YamlFormatterRoute = YamlFormatterRouteImport.update({
   id: '/yaml-formatter',
   path: '/yaml-formatter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const XmlJsonRoute = XmlJsonRouteImport.update({
+  id: '/xml-json',
+  path: '/xml-json',
   getParentRoute: () => rootRouteImport,
 } as any)
 const XmlFormatterRoute = XmlFormatterRouteImport.update({
@@ -200,7 +212,9 @@ export interface FileRoutesByFullPath {
   '/url-encoder': typeof UrlEncoderRoute
   '/uuid-generator': typeof UuidGeneratorRoute
   '/xml-formatter': typeof XmlFormatterRoute
+  '/xml-json': typeof XmlJsonRoute
   '/yaml-formatter': typeof YamlFormatterRoute
+  '/yaml-json': typeof YamlJsonRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -229,7 +243,9 @@ export interface FileRoutesByTo {
   '/url-encoder': typeof UrlEncoderRoute
   '/uuid-generator': typeof UuidGeneratorRoute
   '/xml-formatter': typeof XmlFormatterRoute
+  '/xml-json': typeof XmlJsonRoute
   '/yaml-formatter': typeof YamlFormatterRoute
+  '/yaml-json': typeof YamlJsonRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -259,7 +275,9 @@ export interface FileRoutesById {
   '/url-encoder': typeof UrlEncoderRoute
   '/uuid-generator': typeof UuidGeneratorRoute
   '/xml-formatter': typeof XmlFormatterRoute
+  '/xml-json': typeof XmlJsonRoute
   '/yaml-formatter': typeof YamlFormatterRoute
+  '/yaml-json': typeof YamlJsonRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -290,7 +308,9 @@ export interface FileRouteTypes {
     | '/url-encoder'
     | '/uuid-generator'
     | '/xml-formatter'
+    | '/xml-json'
     | '/yaml-formatter'
+    | '/yaml-json'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -319,7 +339,9 @@ export interface FileRouteTypes {
     | '/url-encoder'
     | '/uuid-generator'
     | '/xml-formatter'
+    | '/xml-json'
     | '/yaml-formatter'
+    | '/yaml-json'
   id:
     | '__root__'
     | '/'
@@ -348,7 +370,9 @@ export interface FileRouteTypes {
     | '/url-encoder'
     | '/uuid-generator'
     | '/xml-formatter'
+    | '/xml-json'
     | '/yaml-formatter'
+    | '/yaml-json'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -378,16 +402,32 @@ export interface RootRouteChildren {
   UrlEncoderRoute: typeof UrlEncoderRoute
   UuidGeneratorRoute: typeof UuidGeneratorRoute
   XmlFormatterRoute: typeof XmlFormatterRoute
+  XmlJsonRoute: typeof XmlJsonRoute
   YamlFormatterRoute: typeof YamlFormatterRoute
+  YamlJsonRoute: typeof YamlJsonRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/yaml-json': {
+      id: '/yaml-json'
+      path: '/yaml-json'
+      fullPath: '/yaml-json'
+      preLoaderRoute: typeof YamlJsonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/yaml-formatter': {
       id: '/yaml-formatter'
       path: '/yaml-formatter'
       fullPath: '/yaml-formatter'
       preLoaderRoute: typeof YamlFormatterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/xml-json': {
+      id: '/xml-json'
+      path: '/xml-json'
+      fullPath: '/xml-json'
+      preLoaderRoute: typeof XmlJsonRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/xml-formatter': {
@@ -602,7 +642,9 @@ const rootRouteChildren: RootRouteChildren = {
   UrlEncoderRoute: UrlEncoderRoute,
   UuidGeneratorRoute: UuidGeneratorRoute,
   XmlFormatterRoute: XmlFormatterRoute,
+  XmlJsonRoute: XmlJsonRoute,
   YamlFormatterRoute: YamlFormatterRoute,
+  YamlJsonRoute: YamlJsonRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

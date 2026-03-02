@@ -23,6 +23,7 @@ import {
   Link2,
   BookOpen,
   Copy,
+  Loader,
 } from "lucide-react"
 import {
   X509Certificate,
@@ -271,7 +272,7 @@ function Pkcs7ViewerPage() {
   const [info, setInfo] = useState<Pkcs7Info | null>(null)
   const [certs, setCerts] = useState<ParsedCert[]>([])
   const [error, setError] = useState("")
-  const { paste, copy } = useClipboard()
+  const { paste, copy, isCopying, isPasting } = useClipboard()
 
   const debounced = useDebounce(input, 300)
 
@@ -365,7 +366,7 @@ function Pkcs7ViewerPage() {
         <CardContent className="p-4 sm:p-6 space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="sm" onClick={handlePaste}>
-              <ClipboardPaste className="mr-1.5 h-3.5 w-3.5" />
+              {isPasting ? <Loader className="animate-spin mr-1.5 h-3.5 w-3.5" /> : <ClipboardPaste className="mr-1.5 h-3.5 w-3.5" />}
               Paste
             </Button>
             <Button variant="outline" size="sm" asChild>
@@ -486,7 +487,7 @@ function Pkcs7ViewerPage() {
                   {certs.length > 0 && (
                     <div className="space-y-3">
                       {certs.map((pc, idx) => (
-                        <InlineCertCard key={idx} pc={pc} index={idx} copy={copy} />
+                        <InlineCertCard key={idx} pc={pc} index={idx} />
                       ))}
                     </div>
                   )}
@@ -524,7 +525,7 @@ function Pkcs7ViewerPage() {
           {certs.length > 0 && (
             <TabsContent value="certificates" className="space-y-4">
               {certs.map((pc, idx) => (
-                <CertificateCard key={idx} pc={pc} index={idx} copy={copy} />
+                <CertificateCard key={idx} pc={pc} index={idx} />
               ))}
             </TabsContent>
           )}
@@ -549,11 +550,9 @@ function Pkcs7ViewerPage() {
 function CertificateCard({
   pc,
   index,
-  copy,
 }: {
   pc: ParsedCert
   index: number
-  copy: (text: string, label?: string) => Promise<void>
 }) {
   const [open, setOpen] = useState(index === 0) // expand first by default
   const { cert, sha256, sha1 } = pc
@@ -648,7 +647,7 @@ function CertificateCard({
             {/* Certificate Details */}
             <Section icon={FileDigit} title="Certificate Details">
               <div className="space-y-2">
-                <InfoRow label="Serial Number" value={formatSerial(cert.serialNumber)} mono copy={copy} />
+                <InfoRow label="Serial Number" value={formatSerial(cert.serialNumber)} mono />
                 <InfoRow label="Signature Algorithm" value={formatAlgorithm(cert.signatureAlgorithm)} />
                 <InfoRow label="DER Size" value={`${(cert.rawData as ArrayBuffer).byteLength} bytes`} />
               </div>
@@ -694,8 +693,8 @@ function CertificateCard({
             {(ski || aki) && (
               <Section icon={Key} title="Key Identifiers">
                 <div className="space-y-2">
-                  {ski && <InfoRow label="Subject Key ID" value={ski.keyId} mono copy={copy} />}
-                  {aki?.keyId && <InfoRow label="Authority Key ID" value={aki.keyId} mono copy={copy} />}
+                  {ski && <InfoRow label="Subject Key ID" value={ski.keyId} mono />}
+                  {aki?.keyId && <InfoRow label="Authority Key ID" value={aki.keyId} mono />}
                 </div>
               </Section>
             )}
@@ -723,8 +722,8 @@ function CertificateCard({
             {/* Fingerprints */}
             <Section icon={Fingerprint} title="Fingerprints">
               <div className="space-y-2">
-                <InfoRow label="SHA-256" value={formatFingerprint(sha256)} mono copy={copy} />
-                <InfoRow label="SHA-1" value={formatFingerprint(sha1)} mono copy={copy} />
+                <InfoRow label="SHA-256" value={formatFingerprint(sha256)} mono />
+                <InfoRow label="SHA-1" value={formatFingerprint(sha1)} mono />
               </div>
             </Section>
           </div>
@@ -739,11 +738,9 @@ function CertificateCard({
 function InlineCertCard({
   pc,
   index,
-  copy,
 }: {
   pc: ParsedCert
   index: number
-  copy: (text: string, label?: string) => Promise<void>
 }) {
   const [open, setOpen] = useState(false)
   const { cert, sha256, sha1 } = pc
@@ -814,7 +811,7 @@ function InlineCertCard({
 
             {/* Serial Number */}
             <div className="space-y-1.5">
-              <InfoRow label="Serial Number" value={formatSerial(cert.serialNumber)} mono copy={copy} />
+              <InfoRow label="Serial Number" value={formatSerial(cert.serialNumber)} mono />
               <InfoRow label="Signature" value={formatAlgorithm(cert.signatureAlgorithm)} />
               <InfoRow label="DER Size" value={`${(cert.rawData as ArrayBuffer).byteLength} bytes`} />
             </div>
@@ -899,15 +896,15 @@ function InlineCertCard({
             {/* Key Identifiers */}
             {(ski || aki) && (
               <div className="space-y-1.5">
-                {ski && <InfoRow label="Subject Key ID" value={ski.keyId} mono copy={copy} />}
-                {aki?.keyId && <InfoRow label="Authority Key ID" value={aki.keyId} mono copy={copy} />}
+                {ski && <InfoRow label="Subject Key ID" value={ski.keyId} mono />}
+                {aki?.keyId && <InfoRow label="Authority Key ID" value={aki.keyId} mono />}
               </div>
             )}
 
             {/* Fingerprints */}
             <div className="space-y-1.5">
-              <InfoRow label="SHA-256" value={formatFingerprint(sha256)} mono copy={copy} />
-              <InfoRow label="SHA-1" value={formatFingerprint(sha1)} mono copy={copy} />
+              <InfoRow label="SHA-256" value={formatFingerprint(sha256)} mono />
+              <InfoRow label="SHA-1" value={formatFingerprint(sha1)} mono />
             </div>
           </div>
         </CollapsibleContent>
@@ -1133,13 +1130,14 @@ function InfoRow({
   label,
   value,
   mono,
-  copy,
 }: {
   label: string
   value: string
   mono?: boolean
-  copy?: (text: string, label?: string) => Promise<void>
 }) {
+
+  const { copy, isCopying } = useClipboard()
+
   if (!value) return null
   return (
     <div className="flex items-start gap-3 text-xs group">
@@ -1158,7 +1156,11 @@ function InfoRow({
               onClick={() => copy(value, `${label} copied`)}
               className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
             >
-              <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+              {isCopying ? (
+                <Loader className="h-3 w-3 text-muted-foreground animate-pulse" />
+              ) : (
+                <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+              )}
             </button>
           </TooltipTrigger>
           <TooltipContent>Copy</TooltipContent>

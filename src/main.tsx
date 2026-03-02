@@ -4,7 +4,7 @@ import { RouterProvider, createRouter } from "@tanstack/react-router"
 import { routeTree } from "./routeTree.gen"
 import "./index.css"
 
-const router = createRouter({ routeTree, basepath: "/base64-encode-decode" })
+const router = createRouter({ routeTree, basepath: "/base64-encode-decode/" })
 
 declare module "@tanstack/react-router" {
   interface Register {

@@ -1,1 +1,0 @@
-import{r,u as a}from"./index-BHmzQRcD.js";function s(){const t=r.useCallback(async(e,c="Copied to clipboard")=>{try{await navigator.clipboard.writeText(e),a.success(c)}catch{a.error("Failed to copy")}},[]),o=r.useCallback(async()=>{try{return await navigator.clipboard.readText()}catch{return a.error("Failed to read clipboard"),""}},[]);return{copy:t,paste:o}}export{s as u};

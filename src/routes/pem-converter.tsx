@@ -34,7 +34,7 @@ function PemConverterPage() {
   const [bytes, setBytes] = useState<Uint8Array | null>(null)
   const [detectedType, setDetectedType] = useState<string | null>(null)
   const [error, setError] = useState("")
-  const { paste, copy, isCopying, isPasting } = useClipboard()
+  const { paste, isPasting } = useClipboard()
 
   const debounced = useDebounce(input, 300)
 

@@ -272,7 +272,7 @@ function Pkcs7ViewerPage() {
   const [info, setInfo] = useState<Pkcs7Info | null>(null)
   const [certs, setCerts] = useState<ParsedCert[]>([])
   const [error, setError] = useState("")
-  const { paste, copy, isCopying, isPasting } = useClipboard()
+  const { paste, isPasting } = useClipboard()
 
   const debounced = useDebounce(input, 300)
 

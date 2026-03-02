@@ -49,7 +49,7 @@ function JwtDecoderPage() {
   const [input, setInput] = useState("")
   const [result, setResult] = useState<JwtParts | null>(null)
   const [error, setError] = useState("")
-  const { paste, isPasting, copy, isCopying } = useClipboard()
+  const { paste, isPasting, copy } = useClipboard()
 
   const debounced = useDebounce(input, 300)
 

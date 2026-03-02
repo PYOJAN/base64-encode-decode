@@ -21,11 +21,6 @@ import {
 } from "@/components/ui/dialog"
 import { PdfViewer } from "@/components/pdf-viewer"
 import { PageHeader } from "@/components/page-header"
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from "@/components/ui/tooltip"
 import { useClipboard } from "@/hooks/use-clipboard"
 import { base64ToBlob } from "@/utils/base64"
 import { isBase64 } from "@/utils/file-reader"

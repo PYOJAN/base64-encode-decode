@@ -9,13 +9,11 @@ import {
   CheckCircle2,
   ShieldCheck,
   ShieldX,
-  Clock,
   ArrowDown,
   XCircle,
   Loader,
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
@@ -256,9 +254,6 @@ function ChainValidatorPage() {
     )
 
   const hasBreaks = chain.some((l) => l.chainBreak)
-  const hasExpired = chain.some(
-    (l) => l.cert.isExpired || l.cert.isNotYetValid
-  )
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-6">

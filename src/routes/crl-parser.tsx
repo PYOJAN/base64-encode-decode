@@ -20,7 +20,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
@@ -28,10 +27,9 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip"
-import { PageHeader } from "@/components/page-header"
 import { Asn1TreeView } from "@/components/asn1-tree-view"
-import { useClipboard } from "@/hooks/use-clipboard"
-import { useDebounce } from "@/hooks/use-debounce"
+import { ToolPageLayout, SectionCard, InfoRow } from "@/components"
+import { useClipboard, useDebounce } from "@/hooks"
 import { inputToBytes, bytesToHex } from "@/utils/pem"
 import {
   parseAsn1,
@@ -332,13 +330,13 @@ function CrlParserPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 p-4 sm:p-6">
-      <PageHeader
-        icon={FileX2}
-        title="CRL Parser"
-        description="Parse and inspect X.509 Certificate Revocation Lists. All processing happens locally in your browser."
-        badge="Certificate / Signing"
-      />
+    <ToolPageLayout
+      variant="scroll"
+      icon={FileX2}
+      title="CRL Parser"
+      description="Parse and inspect X.509 Certificate Revocation Lists. All processing happens locally in your browser."
+      badge="Certificate / Signing"
+    >
 
       {/* Input */}
       <Card>
@@ -405,22 +403,22 @@ function CrlParserPage() {
             {crlInfo ? (
               <>
                 {/* Issuer */}
-                <Section icon={Award} title="Issuer">
+                <SectionCard icon={Award} title="Issuer">
                   <p className="text-xs font-mono break-all leading-relaxed">
                     {crlInfo.issuer}
                   </p>
-                </Section>
+                </SectionCard>
 
                 {/* Signature Algorithm */}
-                <Section icon={Shield} title="Signature Algorithm">
+                <SectionCard icon={Shield} title="Signature Algorithm">
                   <InfoRow
                     label="Algorithm"
                     value={crlInfo.signatureAlgorithm}
                   />
-                </Section>
+                </SectionCard>
 
                 {/* Validity Dates */}
-                <Section icon={Clock} title="Validity Dates">
+                <SectionCard icon={Clock} title="Validity Dates">
                   <div className="space-y-2">
                     <InfoRow label="This Update" value={crlInfo.thisUpdate} />
                     <InfoRow
@@ -428,10 +426,10 @@ function CrlParserPage() {
                       value={crlInfo.nextUpdate ?? "Not specified"}
                     />
                   </div>
-                </Section>
+                </SectionCard>
 
                 {/* Revoked Certificates */}
-                <Section
+                <SectionCard
                   icon={Ban}
                   title={`Revoked Certificates (${crlInfo.revokedCertificates.length})`}
                 >
@@ -528,7 +526,7 @@ function CrlParserPage() {
                       </ScrollArea>
                     </div>
                   )}
-                </Section>
+                </SectionCard>
               </>
             ) : (
               <Card>
@@ -553,49 +551,7 @@ function CrlParserPage() {
           </TabsContent>
         </Tabs>
       )}
-    </div>
+    </ToolPageLayout>
   )
 }
 
-// ── Shared sub-components ──
-
-function Section({
-  icon: Icon,
-  title,
-  children,
-}: {
-  icon: React.ComponentType<{ className?: string }>
-  title: string
-  children: React.ReactNode
-}) {
-  return (
-    <Card>
-      <CardContent className="p-4 sm:p-5 space-y-3">
-        <div className="flex items-center gap-2">
-          <Icon className="h-4 w-4 text-primary shrink-0" />
-          <h3 className="text-sm font-medium">{title}</h3>
-        </div>
-        <Separator />
-        {children}
-      </CardContent>
-    </Card>
-  )
-}
-
-function InfoRow({
-  label,
-  value,
-}: {
-  label: string
-  value: string
-}) {
-  if (!value) return null
-  return (
-    <div className="flex items-start gap-3 text-xs">
-      <span className="text-muted-foreground w-36 shrink-0 pt-0.5 text-right">
-        {label}
-      </span>
-      <span className="break-all flex-1">{value}</span>
-    </div>
-  )
-}

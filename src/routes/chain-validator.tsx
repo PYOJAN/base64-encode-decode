@@ -18,9 +18,8 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { PageHeader } from "@/components/page-header"
-import { useClipboard } from "@/hooks/use-clipboard"
-import { useDebounce } from "@/hooks/use-debounce"
+import { ToolPageLayout } from "@/components"
+import { useClipboard, useDebounce } from "@/hooks"
 import * as x509 from "@peculiar/x509"
 
 export const Route = createFileRoute("/chain-validator")({
@@ -256,13 +255,13 @@ function ChainValidatorPage() {
   const hasBreaks = chain.some((l) => l.chainBreak)
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-6">
-      <PageHeader
-        icon={Link2}
-        title="Chain Validator"
-        description="Paste or upload multiple certificates. Validation runs automatically."
-        badge="X.509"
-      />
+    <ToolPageLayout
+      variant="scroll"
+      icon={Link2}
+      title="Chain Validator"
+      description="Paste or upload multiple certificates. Validation runs automatically."
+      badge="X.509"
+    >
 
       {/* INPUT */}
       <Card>
@@ -366,7 +365,7 @@ function ChainValidatorPage() {
           </div>
         </ScrollArea>
       )}
-    </div>
+    </ToolPageLayout>
   )
 }
 

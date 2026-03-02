@@ -18,8 +18,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 
-import { PageHeader } from "@/components/page-header"
-import { useClipboard } from "@/hooks/use-clipboard"
+import { ToolPageLayout } from "@/components"
+import { useClipboard } from "@/hooks"
 import * as x509 from "@peculiar/x509"
 
 export const Route = createFileRoute("/csr-generator")({
@@ -212,13 +212,13 @@ function CsrGeneratorPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 p-4 sm:p-6">
-      <PageHeader
-        icon={FilePlus2}
-        title="CSR Generator"
-        description="Generate Certificate Signing Requests using the Web Crypto API. Keys are generated locally in your browser."
-        badge="Certificate / Signing"
-      />
+    <ToolPageLayout
+      variant="scroll"
+      icon={FilePlus2}
+      title="CSR Generator"
+      description="Generate Certificate Signing Requests using the Web Crypto API. Keys are generated locally in your browser."
+      badge="Certificate / Signing"
+    >
 
       {/* Form */}
       <Card>
@@ -447,6 +447,6 @@ function CsrGeneratorPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </ToolPageLayout>
   )
 }

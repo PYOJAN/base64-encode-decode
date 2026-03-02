@@ -23,9 +23,8 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { PageHeader } from "@/components/page-header"
-import { useClipboard } from "@/hooks/use-clipboard"
-import { useDebounce } from "@/hooks/use-debounce"
+import { ToolPageLayout } from "@/components"
+import { useClipboard, useDebounce } from "@/hooks"
 import { decodeJwt, getExpiryStatus, type JwtParts } from "@/utils/jwt"
 
 export const Route = createFileRoute("/jwt-decoder")({
@@ -88,13 +87,13 @@ function JwtDecoderPage() {
   const expiryStatus = result ? getExpiryStatus(result.payload) : null
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 p-4 sm:p-6">
-      <PageHeader
-        icon={KeyRound}
-        title="JWT Decoder"
-        description="Decode and inspect JSON Web Tokens. All processing happens locally in your browser."
-        badge="Certificate / Signing"
-      />
+    <ToolPageLayout
+      variant="scroll"
+      icon={KeyRound}
+      title="JWT Decoder"
+      description="Decode and inspect JSON Web Tokens. All processing happens locally in your browser."
+      badge="Certificate / Signing"
+    >
 
       {/* Input */}
       <Card>
@@ -190,7 +189,7 @@ function JwtDecoderPage() {
           </Card>
         </div>
       )}
-    </div>
+    </ToolPageLayout>
   )
 }
 

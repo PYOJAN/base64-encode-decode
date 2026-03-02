@@ -14,9 +14,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
-import { PageHeader } from "@/components/page-header"
-import { useClipboard } from "@/hooks/use-clipboard"
-import { useDebounce } from "@/hooks/use-debounce"
+import { ToolPageLayout } from "@/components"
+import { useClipboard, useDebounce } from "@/hooks"
 import {
   inputToBytes,
   detectPemType,
@@ -101,13 +100,13 @@ function PemConverterPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 p-4 sm:p-6">
-      <PageHeader
-        icon={ArrowLeftRight}
-        title="PEM / DER Converter"
-        description="Convert between PEM (Base64 with headers) and DER (binary) certificate formats."
-        badge="PKI"
-      />
+    <ToolPageLayout
+      variant="scroll"
+      icon={ArrowLeftRight}
+      title="PEM / DER Converter"
+      description="Convert between PEM (Base64 with headers) and DER (binary) certificate formats."
+      badge="PKI"
+    >
 
       {/* Input */}
       <Card>
@@ -212,7 +211,7 @@ function PemConverterPage() {
           </Card>
         </div>
       )}
-    </div>
+    </ToolPageLayout>
   )
 }
 

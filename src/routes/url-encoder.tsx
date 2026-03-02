@@ -1,14 +1,17 @@
 import { useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
-import { Globe, Copy, ClipboardPaste, Trash2, Loader } from "lucide-react"
+import { Globe, Copy } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { PageHeader } from "@/components/page-header"
-import { useClipboard } from "@/hooks/use-clipboard"
-import { useDebounce } from "@/hooks/use-debounce"
+import {
+  ToolPageLayout,
+  PasteClearButtons,
+  ErrorBanner,
+} from "@/components"
+import { useClipboard, useDebounce } from "@/hooks"
 
 export const Route = createFileRoute("/url-encoder")({
   component: UrlEncoderPage,
@@ -42,20 +45,16 @@ function UrlEncoderPage() {
     if (text) setInput(text)
   }
 
-  const handleClear = () => setInput("")
-
   return (
-    <div className="flex flex-col h-[calc(100vh-3rem)] p-4 sm:p-6 gap-6">
-      <PageHeader
-        icon={Globe}
-        title="URL Encoder / Decoder"
-        description="Encode or decode URL components using percent-encoding."
-        badge="Encode / Decode"
-      />
-
+    <ToolPageLayout
+      variant="full-height"
+      icon={Globe}
+      title="URL Encoder / Decoder"
+      description="Encode or decode URL components using percent-encoding."
+      badge="Encode / Decode"
+    >
       <Card className="flex flex-col flex-1 min-h-0">
         <CardContent className="flex flex-col flex-1 min-h-0 p-6 gap-6">
-
           {/* Mode Switch */}
           <Tabs
             value={mode}
@@ -72,34 +71,18 @@ function UrlEncoderPage() {
 
           {/* Split Layout */}
           <div className="grid flex-1 min-h-0 gap-6 lg:grid-cols-2">
-
             {/* INPUT PANEL */}
             <div className="flex flex-col min-h-0">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {mode === "encode" ? "Plain Text" : "Encoded Input"}
                 </h2>
-
-                <div className="flex gap-2">
-                  <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePaste}
-                  disabled={isPasting}
-                >
-                  {isPasting ? <Loader className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <ClipboardPaste className="mr-1.5 h-3.5 w-3.5" />}
-                  Paste from Clipboard
-                </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleClear}
-                    disabled={!input}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+                <PasteClearButtons
+                  onPaste={handlePaste}
+                  onClear={() => setInput("")}
+                  isPasting={isPasting}
+                  clearDisabled={!input}
+                />
               </div>
 
               <Textarea
@@ -126,7 +109,6 @@ function UrlEncoderPage() {
                 <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {mode === "encode" ? "Encoded Output" : "Decoded Output"}
                 </h2>
-
                 <Button
                   variant="outline"
                   size="sm"
@@ -155,17 +137,9 @@ function UrlEncoderPage() {
             </div>
           </div>
 
-          {/* Error */}
-          {error && (
-            <div className="flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2">
-              <div className="h-2 w-2 rounded-full bg-destructive" />
-              <p className="text-xs text-destructive font-mono break-all">
-                {error}
-              </p>
-            </div>
-          )}
+          <ErrorBanner error={error} />
         </CardContent>
       </Card>
-    </div>
+    </ToolPageLayout>
   )
 }

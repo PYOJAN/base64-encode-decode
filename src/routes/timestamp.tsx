@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { PageHeader } from "@/components/page-header"
-import { useClipboard } from "@/hooks/use-clipboard"
+import { ToolPageLayout } from "@/components"
+import { useClipboard } from "@/hooks"
 
 export const Route = createFileRoute("/timestamp")({
   component: TimestampPage,
@@ -56,13 +56,13 @@ function TimestampPage() {
   const dateValid = parsedDate instanceof Date && !isNaN(parsedDate.getTime())
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 p-4 sm:p-6">
-      <PageHeader
-        icon={Clock}
-        title="Timestamp Converter"
-        description="Convert between Unix timestamps and human-readable dates."
-        badge="Utility"
-      />
+    <ToolPageLayout
+      variant="scroll"
+      icon={Clock}
+      title="Timestamp Converter"
+      description="Convert between Unix timestamps and human-readable dates."
+      badge="Utility"
+    >
 
       {/* Current Time */}
       <Card>
@@ -256,7 +256,7 @@ function TimestampPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </ToolPageLayout>
   )
 }
 

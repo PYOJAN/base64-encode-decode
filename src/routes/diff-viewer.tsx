@@ -8,9 +8,8 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip"
 import { Textarea } from "@/components/ui/textarea"
-import { PageHeader } from "@/components/page-header"
-import { useClipboard } from "@/hooks/use-clipboard"
-import { useDebounce } from "@/hooks/use-debounce"
+import { ToolPageLayout } from "@/components"
+import { useClipboard, useDebounce } from "@/hooks"
 import diff from "fast-diff"
 
 export const Route = createFileRoute("/diff-viewer")({
@@ -60,13 +59,13 @@ function DiffViewerPage() {
   }, [result])
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3rem)] p-3 sm:p-4 gap-3">
-      <PageHeader
-        icon={GitCompareArrows}
-        title="Diff Viewer"
-        description="Compare two texts and visualize inline differences."
-        badge="Text / Data"
-      />
+    <ToolPageLayout
+      variant="full-height"
+      icon={GitCompareArrows}
+      title="Diff Viewer"
+      description="Compare two texts and visualize inline differences."
+      badge="Text / Data"
+    >
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 p-2">
@@ -182,6 +181,6 @@ function DiffViewerPage() {
           </div>
         </div>
       )}
-    </div>
+    </ToolPageLayout>
   )
 }

@@ -11,7 +11,13 @@ export default defineConfig({
     tailwindcss(),
   ],
   base: "/base64-encode-decode/",
+  server: {
+    allowedHosts: ["pintu.capricorn.online"],
+  },
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },
+  },
+  optimizeDeps: {
+    include: ["node-forge"],
   },
 })

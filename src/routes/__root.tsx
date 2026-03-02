@@ -31,7 +31,7 @@ const pageMeta: Record<string, PageMeta> = {
   "/base64-to-text": { title: "Base64 to Text", description: "Decode Base64 encoded strings to readable text. Supports UTF-8. Free online Base64 text decoder." },
   "/json-formatter": { title: "JSON Formatter", description: "Format, minify, and validate JSON data online. Pretty-print with syntax highlighting. Free JSON beautifier tool." },
   "/xml-formatter": { title: "XML Formatter", description: "Format and minify XML documents online. Pretty-print with proper indentation. Free XML beautifier tool." },
-  "/hash-generator": { title: "Hash Generator", description: "Generate SHA-256, SHA-1, SHA-384, SHA-512 hashes from text or files. Free online hash calculator, all processing in browser." },
+  "/hash-generator": { title: "Hash Generator", description: "Generate MD5, SHA-1, SHA-256, SHA-384, SHA-512 hashes from text or files in hex, Base64, and Base64URL formats. Free online hash calculator, all processing in browser." },
   "/timestamp": { title: "Timestamp Converter", description: "Convert Unix timestamps to human-readable dates and vice versa. Supports seconds and milliseconds. Free online timestamp tool." },
   "/url-encoder": { title: "URL Encoder / Decoder", description: "Encode and decode URL components online. Handles special characters and percent-encoding. Free URL encoding tool." },
   "/number-base": { title: "Number Base Converter", description: "Convert numbers between hexadecimal, decimal, octal, and binary formats. Free online number base converter." },
@@ -46,6 +46,9 @@ const pageMeta: Record<string, PageMeta> = {
   "/crl-parser": { title: "CRL Parser", description: "Parse X.509 Certificate Revocation Lists online. Search revoked certificates by serial number. Free CRL inspection tool." },
   "/chain-validator": { title: "Certificate Chain Validator", description: "Validate X.509 certificate chains. Verify issuer-subject relationships and trust paths. Free online chain validator." },
   "/csr-generator": { title: "CSR Generator", description: "Generate Certificate Signing Requests (CSR) with custom subject fields. In-browser key generation. Free online CSR tool." },
+  "/pfx-converter": { title: "PFX / PKCS#12 Converter", description: "Extract certificates, private keys, and CA chains from PFX/PKCS#12 files into PEM/DER formats. Free browser-based tool, no data leaves your machine." },
+  "/csr-decoder": { title: "CSR Decoder", description: "Decode and inspect Certificate Signing Requests (PKCS#10) online. View subject, public key, extensions, SANs, and fingerprints. No data leaves your browser." },
+  "/csr-signer": { title: "CSR Signer", description: "Sign a Certificate Signing Request with an auto-generated CA. Generate signed certificates, CA certificates, and private keys. All processing in your browser." },
 }
 
 const pageTitles: Record<string, string> = Object.fromEntries(

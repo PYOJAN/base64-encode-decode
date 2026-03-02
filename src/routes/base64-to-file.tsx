@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
-import { FileDown, ClipboardPaste, Download, Eye, Trash2, Loader } from "lucide-react"
+import { FileDown, Download, Eye } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -14,8 +14,12 @@ import {
   VisuallyHidden,
 } from "@/components/ui/dialog"
 import { PdfViewer } from "@/components/pdf-viewer"
-import { PageHeader } from "@/components/page-header"
-import { useClipboard } from "@/hooks/use-clipboard"
+import {
+  ToolPageLayout,
+  PasteClearButtons,
+  ValidationDot,
+} from "@/components"
+import { useClipboard } from "@/hooks"
 import { extractBase64Data, base64ToBlob } from "@/utils/base64"
 import { isBase64 } from "@/utils/file-reader"
 
@@ -56,41 +60,22 @@ function Base64ToFilePage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
-      <PageHeader
-        icon={FileDown}
-        title="Base64 to File"
-        description="Decode a Base64 string and download it as a file, or preview PDFs and images."
-        badge="Decode"
-      />
-
+    <ToolPageLayout
+      variant="scroll"
+      icon={FileDown}
+      title="Base64 to File"
+      description="Decode a Base64 string and download it as a file, or preview PDFs and images."
+      badge="Decode"
+    >
       <Card>
         <CardContent className="p-6 space-y-4">
+          <PasteClearButtons
+            onPaste={handlePaste}
+            onClear={() => setInput("")}
+            isPasting={isPasting}
+            clearDisabled={!input}
+          />
 
-          {/* Toolbar */}
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePaste}
-              disabled={isPasting}
-            >
-              {isPasting ? <Loader className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <ClipboardPaste className="mr-1.5 h-3.5 w-3.5" />}
-              Paste from Clipboard
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setInput("")}
-              disabled={!input}
-            >
-              <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-              Clear
-            </Button>
-          </div>
-
-          {/* Input */}
           <Textarea
             placeholder="Paste Base64 or Data URI string here..."
             value={input}
@@ -99,19 +84,14 @@ function Base64ToFilePage() {
             className="resize-none font-mono text-xs leading-relaxed"
           />
 
-          {/* Validation */}
           {input.trim() && (
             <div className="flex items-center gap-2">
-              <div
-                className={`h-2 w-2 rounded-full ${valid ? "bg-emerald-500" : "bg-destructive"
-                  }`}
+              <ValidationDot
+                show
+                valid={valid}
+                validLabel="Valid Base64 detected"
+                invalidLabel="Not a valid Base64 string"
               />
-              <span className="text-sm text-muted-foreground">
-                {valid
-                  ? "Valid Base64 detected"
-                  : "Not a valid Base64 string"}
-              </span>
-
               {valid && (
                 <Badge variant="secondary" className="font-mono text-[10px]">
                   {detectedType}
@@ -132,10 +112,7 @@ function Base64ToFilePage() {
               </Button>
 
               {(isPdf || isImage) && (
-                <Button
-                  variant="outline"
-                  onClick={() => setPreviewOpen(true)}
-                >
+                <Button variant="outline" onClick={() => setPreviewOpen(true)}>
                   <Eye className="mr-1.5 h-4 w-4" />
                   Preview
                 </Button>
@@ -179,6 +156,6 @@ function Base64ToFilePage() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </ToolPageLayout>
   )
 }

@@ -1,4 +1,5 @@
-import forge from "node-forge"
+// @ts-expect-error — UMD bundle; types come from @types/node-forge
+import forge from "node-forge/dist/forge.min.js"
 
 export type HashAlgorithm = "MD5" | "SHA-1" | "SHA-256" | "SHA-384" | "SHA-512"
 
@@ -31,7 +32,7 @@ function computeMd5(data: ArrayBuffer): HashResult {
   md.update(forge.util.binary.raw.encode(new Uint8Array(data)))
   const digestHex = md.digest().toHex()
   const bytes = new Uint8Array(
-    digestHex.match(/.{2}/g)!.map((h) => parseInt(h, 16))
+    digestHex.match(/.{2}/g)!.map((h: string) => parseInt(h, 16))
   )
   return { raw: bytes.buffer as ArrayBuffer, ...bytesToFormats(bytes) }
 }

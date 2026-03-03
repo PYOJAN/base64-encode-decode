@@ -17,7 +17,11 @@ export default defineConfig({
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },
   },
+  define: {
+    "global": "globalThis",
+    "process.env": {},
+  },
   optimizeDeps: {
-    include: ["node-forge"],
+    include: [],
   },
 })

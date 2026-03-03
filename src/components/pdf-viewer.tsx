@@ -18,6 +18,7 @@ import {
   PanelLeftOpen,
   ChevronsUpDown,
   Check,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -37,8 +38,10 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 
 interface PdfViewerProps {
   data: string
+  title?: string
   className?: string
   onDownload?: () => void
+  onClose?: () => void
 }
 
 type ZoomPreset = "fit-width" | "fit-page"
@@ -65,7 +68,7 @@ const MIN_ZOOM = 0.1
 const MAX_ZOOM = 5
 const THUMBNAIL_WIDTH = 110
 
-export function PdfViewer({ data, className, onDownload }: PdfViewerProps) {
+export function PdfViewer({ data, title, className, onDownload, onClose }: PdfViewerProps) {
   const [numPages, setNumPages] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
   const [scale, setScale] = useState(1)
@@ -281,11 +284,16 @@ export function PdfViewer({ data, className, onDownload }: PdfViewerProps) {
             setScale(1)
           }
           break
+        case "Escape":
+          if (onClose && !isFullscreen) {
+            onClose()
+          }
+          break
       }
     }
     window.addEventListener("keydown", h)
     return () => window.removeEventListener("keydown", h)
-  }, [currentPage, goToPage, zoomIn, zoomOut])
+  }, [currentPage, goToPage, zoomIn, zoomOut, onClose, isFullscreen])
 
   // ── Close zoom dropdown on outside click ──
 
@@ -382,7 +390,7 @@ export function PdfViewer({ data, className, onDownload }: PdfViewerProps) {
         tabIndex={-1}
       >
         {/* ── Toolbar ── */}
-        <div className="flex items-center gap-0.5 px-1.5 py-1 border-b bg-card shrink-0 pr-10 z-50">
+        <div className="flex items-center gap-0.5 px-1.5 py-1 border-b bg-card shrink-0 z-50">
           {/* Thumbnail toggle */}
           {numPages > 1 && (
             <>
@@ -488,7 +496,7 @@ export function PdfViewer({ data, className, onDownload }: PdfViewerProps) {
             onClick={zoomIn}
             disabled={effectiveScale >= MAX_ZOOM || loading}
           />
-          <ToolbarSep />
+          <ToolbarSep className="hidden sm:block" />
 
           {/* Rotate */}
           <ToolbarButton
@@ -496,29 +504,51 @@ export function PdfViewer({ data, className, onDownload }: PdfViewerProps) {
             tooltip="Rotate 90°"
             onClick={rotate}
             disabled={loading}
+            className="hidden sm:inline-flex"
           />
 
-          {/* Spacer */}
-          <div className="flex-1 min-w-2" />
+          {/* Spacer / Title */}
+          <div className="flex-1 min-w-4 flex items-center justify-center overflow-hidden px-4">
+            {title && (
+              <span className="text-xs font-medium text-muted-foreground truncate opacity-0 sm:opacity-100 transition-opacity">
+                {title}
+              </span>
+            )}
+          </div>
 
           {/* Actions */}
-          <ToolbarButton
-            icon={Printer}
-            tooltip="Print"
-            onClick={handlePrint}
-            disabled={loading}
-          />
-          <ToolbarButton
-            icon={Download}
-            tooltip="Download"
-            onClick={handleDownload}
-            disabled={loading}
-          />
-          <ToolbarButton
-            icon={isFullscreen ? Minimize : Maximize}
-            tooltip={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
-            onClick={toggleFullscreen}
-          />
+          <div className="flex items-center gap-0.5">
+            <ToolbarButton
+              icon={Printer}
+              tooltip="Print"
+              onClick={handlePrint}
+              disabled={loading}
+              className="hidden sm:inline-flex"
+            />
+            <ToolbarButton
+              icon={Download}
+              tooltip="Download"
+              onClick={handleDownload}
+              disabled={loading}
+            />
+            <ToolbarButton
+              icon={isFullscreen ? Minimize : Maximize}
+              tooltip={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+              onClick={toggleFullscreen}
+              className="hidden sm:inline-flex"
+            />
+            {onClose && (
+              <>
+                <ToolbarSep />
+                <ToolbarButton
+                  icon={X}
+                  tooltip="Close"
+                  onClick={onClose}
+                  className="hover:bg-destructive/10 hover:text-destructive"
+                />
+              </>
+            )}
+          </div>
         </div>
 
         {/* ── Content area ── */}
@@ -635,8 +665,8 @@ export function PdfViewer({ data, className, onDownload }: PdfViewerProps) {
 
 // ── Toolbar helpers ──
 
-function ToolbarSep() {
-  return <Separator orientation="vertical" className="mx-1 h-5" />
+function ToolbarSep({ className }: { className?: string }) {
+  return <Separator orientation="vertical" className={cn("mx-1 h-5", className)} />
 }
 
 function ToolbarButton({

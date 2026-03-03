@@ -166,7 +166,7 @@ function PdfToBase64Page() {
 
       {/* Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-[95vw] sm:max-w-5xl h-[90vh] flex flex-col p-0">
+        <DialogContent className="max-w-[100vw] w-screen h-screen max-h-screen flex flex-col p-0 border-0 rounded-none">
           <VisuallyHidden.Root>
             <DialogTitle>{fileName}</DialogTitle>
             <DialogDescription>
@@ -175,7 +175,13 @@ function PdfToBase64Page() {
           </VisuallyHidden.Root>
 
           <div className="flex-1 min-h-0">
-            {dataUri && <PdfViewer data={dataUri} />}
+            {dataUri && (
+              <PdfViewer
+                data={dataUri}
+                title={fileName}
+                onClose={() => setPreviewOpen(false)}
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>

@@ -133,27 +133,42 @@ function Base64ToFilePage() {
       )}
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-[100vw] w-screen h-screen max-h-screen flex flex-col p-0 border-0 rounded-none">
+          <VisuallyHidden.Root>
             <DialogTitle>File Preview</DialogTitle>
-            <VisuallyHidden.Root>
-              <DialogDescription>
-                Preview of decoded file
-              </DialogDescription>
-            </VisuallyHidden.Root>
-          </DialogHeader>
+            <DialogDescription>
+              Preview of decoded file
+            </DialogDescription>
+          </VisuallyHidden.Root>
 
-          {isPdf && (
-            <PdfViewer data={`data:application/pdf;base64,${data}`} />
-          )}
+          <div className="flex-1 min-h-0">
+            {isPdf && (
+              <PdfViewer
+                data={`data:application/pdf;base64,${data}`}
+                title="Decoded PDF Preview"
+                onDownload={handleDownload}
+                onClose={() => setPreviewOpen(false)}
+              />
+            )}
 
-          {isImage && (
-            <img
-              src={`data:${detectedType};base64,${data}`}
-              alt="Full preview"
-              className="max-w-full rounded"
-            />
-          )}
+            {isImage && (
+              <div className="h-full flex flex-col">
+                <div className="flex items-center justify-between px-4 py-2 border-b bg-card">
+                  <span className="text-xs font-medium text-muted-foreground truncate">Image Preview</span>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive" onClick={() => setPreviewOpen(false)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex-1 bg-muted/20 flex items-center justify-center p-4 overflow-auto">
+                  <img
+                    src={`data:${detectedType};base64,${data}`}
+                    alt="Full preview"
+                    className="max-w-full max-h-full rounded shadow-lg object-contain"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </ToolPageLayout>

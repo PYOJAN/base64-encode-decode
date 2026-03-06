@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { AdvancedColorPicker } from "@/components/ui/advanced-color-picker"
 import { ToolPageLayout, ErrorBanner } from "@/components"
 import { useClipboard, useDebounce } from "@/hooks"
 import {
@@ -91,8 +92,7 @@ function ColorConverterPage() {
     }
   }, [debouncedInput])
 
-  const handlePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const hex = e.target.value
+  const handlePickerChange = (hex: string) => {
     setPickerColor(hex)
     setInput(hex)
   }
@@ -126,18 +126,13 @@ function ColorConverterPage() {
             {/* Color picker */}
             <div className="flex flex-col items-center gap-2">
               <Label
-                htmlFor="color-picker"
                 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
               >
                 Picker
               </Label>
-              <input
-                id="color-picker"
-                type="color"
-                value={pickerColor}
-                onChange={handlePickerChange}
-                className="h-12 w-12 cursor-pointer rounded-lg border-2 border-muted bg-transparent p-0.5"
-              />
+              <div className="w-[200px]">
+                <AdvancedColorPicker value={pickerColor} onChange={handlePickerChange} />
+              </div>
             </div>
 
             {/* Text input */}

@@ -1,64 +1,39 @@
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import {
-  FilePlus,
   Download,
   Eye,
-  Plus,
-  Trash2,
-  ChevronUp,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  GripVertical,
-  Heading1,
-  Heading2,
-  Heading3,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  List,
-  ListOrdered,
-  Minus,
-  ScissorsLineDashed,
+  FilePlus,
+  FileUp,
   Image as ImageIcon,
-  Settings,
-  FileText,
-  RotateCcw,
-  Quote,
+  Loader2,
+  Minus,
+  Plus,
+  Save,
+  Square,
+  Trash2,
   Type,
-  Pencil,
-  FileStack,
 } from "lucide-react"
-import {
-  DndContext,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  useDraggable,
-  type DragEndEvent,
-} from "@dnd-kit/core"
-import { Card, CardContent } from "@/components/ui/card"
+import { jsPDF } from "jspdf"
+import { toast } from "sonner"
+import { ToolPageLayout } from "@/components"
+import { PdfViewer } from "@/components/pdf-viewer"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  VisuallyHidden,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { AdvancedColorPicker } from "@/components/ui/advanced-color-picker"
 import { Separator } from "@/components/ui/separator"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from "@/components/ui/tooltip"
-import { ToolPageLayout } from "@/components"
-import { toast } from "sonner"
-import { jsPDF } from "jspdf"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { hexToRgb } from "@/utils/color"
 
@@ -66,39 +41,33 @@ export const Route = createFileRoute("/pdf-generator")({
   component: PdfGeneratorPage,
 })
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-type BlockType = "heading" | "paragraph" | "list" | "separator" | "pagebreak" | "image" | "quote"
-type HeadingLevel = 1 | 2 | 3
-type ListStyle = "bullet" | "numbered"
-type ImageAlign = "left" | "center" | "right"
-type PageSize = "a4" | "letter" | "legal" | "a3" | "a5"
+type ElementType = "heading" | "text" | "divider" | "box" | "image"
+type PageSize = "a4" | "letter" | "legal" | "a5"
 type Orientation = "portrait" | "landscape"
 type FontFamily = "helvetica" | "times" | "courier"
+type TextAlign = "left" | "center" | "right"
 
-interface ContentBlock {
+type PdfElement = {
   id: string
-  type: BlockType
-  content: string
-  headingLevel: HeadingLevel
-  listStyle: ListStyle
+  type: ElementType
+  page: number
+  x: number
+  y: number
+  w: number
+  h: number
+  z: number
+  text: string
+  fontSize: number
+  color: string
+  align: TextAlign
+  opacity: number
+  fillColor: string
+  borderColor: string
   imageData?: string
   imageName?: string
-  imageWidth: number
-  imageAlign: ImageAlign
-  imageCaption: string
-  textColor: string
-  /** Page number (1-indexed) */
-  page: number
-  /** Absolute x offset in px within the preview content area */
-  x: number
-  /** Absolute y offset in px within the preview content area */
-  y: number
 }
 
-interface DocumentSettings {
+type DocSettings = {
   pageSize: PageSize
   orientation: Orientation
   marginTop: number
@@ -106,1169 +75,1026 @@ interface DocumentSettings {
   marginBottom: number
   marginLeft: number
   font: FontFamily
-  fontSize: number
-  lineSpacing: number
+  background: string
+  showGuides: boolean
 }
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
+type DocMeta = {
+  fileName: string
+  title: string
+  author: string
+  subject: string
+  keywords: string
+}
+
+type ContextMenuState = {
+  screenX: number
+  screenY: number
+  canvasX: number
+  canvasY: number
+  targetId: string | null
+}
 
 const PAGE_DIMENSIONS: Record<PageSize, { w: number; h: number; label: string }> = {
   a4: { w: 210, h: 297, label: "A4" },
   letter: { w: 216, h: 279, label: "Letter" },
   legal: { w: 216, h: 356, label: "Legal" },
-  a3: { w: 297, h: 420, label: "A3" },
   a5: { w: 148, h: 210, label: "A5" },
 }
 
-const FONTS: { value: FontFamily; label: string }[] = [
-  { value: "helvetica", label: "Helvetica" },
-  { value: "times", label: "Times" },
-  { value: "courier", label: "Courier" },
-]
+const PX_PER_MM = 3
 
-const FONT_CSS: Record<FontFamily, string> = {
-  helvetica: "font-sans",
-  times: "font-serif",
-  courier: "font-mono",
-}
-
-const BLOCK_META: Record<BlockType, { label: string; icon: typeof Heading1; color: string; border: string; bg: string }> = {
-  heading:   { label: "Heading",    icon: Heading1,           color: "text-blue-400",   border: "border-l-blue-400",   bg: "bg-blue-400/10" },
-  paragraph: { label: "Paragraph",  icon: AlignLeft,          color: "text-slate-400",  border: "border-l-slate-400",  bg: "bg-slate-400/10" },
-  list:      { label: "List",       icon: List,               color: "text-green-400",  border: "border-l-green-400",  bg: "bg-green-400/10" },
-  quote:     { label: "Quote",      icon: Quote,              color: "text-amber-400",  border: "border-l-amber-400",  bg: "bg-amber-400/10" },
-  image:     { label: "Image",      icon: ImageIcon,          color: "text-purple-400", border: "border-l-purple-400", bg: "bg-purple-400/10" },
-  separator: { label: "Separator",  icon: Minus,              color: "text-gray-400",   border: "border-l-gray-400",   bg: "bg-gray-400/10" },
-  pagebreak: { label: "Page Break", icon: ScissorsLineDashed, color: "text-orange-400", border: "border-l-orange-400", bg: "bg-orange-400/10" },
-}
-
-const BLOCK_TYPE_LIST: BlockType[] = ["heading", "paragraph", "list", "quote", "image", "separator", "pagebreak"]
-
-const DEFAULT_SETTINGS: DocumentSettings = {
+const DEFAULT_SETTINGS: DocSettings = {
   pageSize: "a4",
   orientation: "portrait",
-  marginTop: 20,
-  marginRight: 20,
-  marginBottom: 20,
-  marginLeft: 20,
+  marginTop: 16,
+  marginRight: 16,
+  marginBottom: 16,
+  marginLeft: 16,
   font: "helvetica",
-  fontSize: 12,
-  lineSpacing: 1.5,
+  background: "#ffffff",
+  showGuides: true,
 }
 
-// 1mm ≈ 2.2px at our preview scale
-const MM_SCALE = 2.2
-
-function createId(): string {
-  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36)
+const DEFAULT_META: DocMeta = {
+  fileName: "live-pdf-document",
+  title: "",
+  author: "",
+  subject: "",
+  keywords: "",
 }
 
-let nextBlockY = 0
-
-function createBlock(type: BlockType, page = 1): ContentBlock {
-  const y = nextBlockY
-  nextBlockY += 40
-  return { id: createId(), type, content: "", headingLevel: 1, listStyle: "bullet", imageWidth: 100, imageAlign: "center", imageCaption: "", textColor: "#000000", page, x: 0, y }
+function createId() {
+  return `${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`
 }
 
-function formatBytes(bytes: number): string {
+function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
 }
 
-// ---------------------------------------------------------------------------
-// Draggable Preview Block  (absolute positioning on the canvas)
-// ---------------------------------------------------------------------------
+function defaultElement(type: ElementType, page: number, x = 40, y = 40, z = 1): PdfElement {
+  if (type === "heading") {
+    return {
+      id: createId(),
+      type,
+      page,
+      x,
+      y,
+      w: 360,
+      h: 38,
+      z,
+      text: "Heading",
+      fontSize: 24,
+      color: "#0f172a",
+      align: "left",
+      opacity: 1,
+      fillColor: "#e2e8f0",
+      borderColor: "#64748b",
+    }
+  }
 
-function DraggablePreviewBlock({
-  block,
-  isActive,
-  headingPx,
-  onClick,
-}: {
-  block: ContentBlock
-  isActive: boolean
-  headingPx: (level: HeadingLevel) => number
-  onClick: () => void
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    isDragging,
-  } = useDraggable({ id: block.id })
+  if (type === "text") {
+    return {
+      id: createId(),
+      type,
+      page,
+      x,
+      y,
+      w: 360,
+      h: 88,
+      z,
+      text: "Editable paragraph text. Double-click and type directly on canvas.",
+      fontSize: 13,
+      color: "#1e293b",
+      align: "left",
+      opacity: 1,
+      fillColor: "#f8fafc",
+      borderColor: "#cbd5e1",
+    }
+  }
 
-  const style: React.CSSProperties = {
-    position: "absolute",
-    left: block.x,
-    top: block.y,
-    transform: transform ? `translate(${transform.x}px, ${transform.y}px)` : undefined,
-    opacity: isDragging ? 0.5 : 1,
-    cursor: "pointer",
-    borderRadius: 3,
-    padding: "2px 4px 2px 18px",
-    outline: isActive ? "2px solid rgba(59,130,246,0.4)" : "none",
-    backgroundColor: isActive ? "rgba(59,130,246,0.04)" : "transparent",
-    zIndex: isDragging ? 50 : isActive ? 10 : 1,
-    maxWidth: "100%",
-    boxSizing: "border-box",
+  if (type === "divider") {
+    return {
+      id: createId(),
+      type,
+      page,
+      x,
+      y,
+      w: 320,
+      h: 2,
+      z,
+      text: "",
+      fontSize: 12,
+      color: "#64748b",
+      align: "left",
+      opacity: 1,
+      fillColor: "#f8fafc",
+      borderColor: "#64748b",
+    }
+  }
+
+  if (type === "box") {
+    return {
+      id: createId(),
+      type,
+      page,
+      x,
+      y,
+      w: 260,
+      h: 88,
+      z,
+      text: "Callout text",
+      fontSize: 12,
+      color: "#0f172a",
+      align: "left",
+      opacity: 0.2,
+      fillColor: "#0ea5e9",
+      borderColor: "#0284c7",
+    }
+  }
+
+  return {
+    id: createId(),
+    type,
+    page,
+    x,
+    y,
+    w: 240,
+    h: 160,
+    z,
+    text: "",
+    fontSize: 12,
+    color: "#0f172a",
+    align: "center",
+    opacity: 1,
+    fillColor: "#f8fafc",
+    borderColor: "#94a3b8",
+  }
+}
+
+function PdfGeneratorPage() {
+  const [settings, setSettings] = useState<DocSettings>(DEFAULT_SETTINGS)
+  const [meta, setMeta] = useState<DocMeta>(DEFAULT_META)
+  const [elements, setElements] = useState<PdfElement[]>([
+    defaultElement("heading", 1, 24, 26, 1),
+    defaultElement("text", 1, 24, 78, 2),
+  ])
+
+  const [activePage, setActivePage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [leftTab, setLeftTab] = useState("elements")
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [pdfDataUri, setPdfDataUri] = useState("")
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
+  const [generating, setGenerating] = useState(false)
+
+  const canvasRef = useRef<HTMLDivElement | null>(null)
+  const contextMenuRef = useRef<HTMLDivElement | null>(null)
+  const imageInputRef = useRef<HTMLInputElement | null>(null)
+  const importInputRef = useRef<HTMLInputElement | null>(null)
+
+  const dragRef = useRef<{
+    id: string
+    startClientX: number
+    startClientY: number
+    startX: number
+    startY: number
+  } | null>(null)
+
+  const selected = useMemo(
+    () => elements.find((e) => e.id === selectedId) ?? null,
+    [elements, selectedId]
+  )
+
+  const pageSizeMm = useMemo(() => {
+    const base = PAGE_DIMENSIONS[settings.pageSize]
+    return settings.orientation === "portrait"
+      ? { w: base.w, h: base.h }
+      : { w: base.h, h: base.w }
+  }, [settings.orientation, settings.pageSize])
+
+  const pageSizePx = useMemo(
+    () => ({ w: pageSizeMm.w * PX_PER_MM, h: pageSizeMm.h * PX_PER_MM }),
+    [pageSizeMm.h, pageSizeMm.w]
+  )
+
+  const contentAreaPx = useMemo(() => {
+    const left = settings.marginLeft * PX_PER_MM
+    const top = settings.marginTop * PX_PER_MM
+    const width = Math.max(100, pageSizePx.w - (settings.marginLeft + settings.marginRight) * PX_PER_MM)
+    const height = Math.max(100, pageSizePx.h - (settings.marginTop + settings.marginBottom) * PX_PER_MM)
+    return { left, top, width, height }
+  }, [pageSizePx.h, pageSizePx.w, settings.marginBottom, settings.marginLeft, settings.marginRight, settings.marginTop])
+
+  const pageElements = useMemo(
+    () => elements.filter((e) => e.page === activePage).sort((a, b) => a.z - b.z),
+    [activePage, elements]
+  )
+
+  const updateSettings = useCallback(<K extends keyof DocSettings>(key: K, value: DocSettings[K]) => {
+    setSettings((prev) => ({ ...prev, [key]: value }))
+  }, [])
+
+  const updateMeta = useCallback(<K extends keyof DocMeta>(key: K, value: DocMeta[K]) => {
+    setMeta((prev) => ({ ...prev, [key]: value }))
+  }, [])
+
+  const updateElement = useCallback((id: string, patch: Partial<PdfElement>) => {
+    setElements((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)))
+  }, [])
+
+  const addElement = useCallback(
+    (type: ElementType, x?: number, y?: number) => {
+      const z = elements.length ? Math.max(...elements.map((e) => e.z)) + 1 : 1
+      const next = defaultElement(type, activePage, x ?? 30, y ?? 30, z)
+      setElements((prev) => [...prev, next])
+      setSelectedId(next.id)
+    },
+    [activePage, elements]
+  )
+
+  const removeElement = useCallback(
+    (id: string) => {
+      setElements((prev) => prev.filter((e) => e.id !== id))
+      if (selectedId === id) setSelectedId(null)
+    },
+    [selectedId]
+  )
+
+  const duplicateElement = useCallback(
+    (id: string) => {
+      const source = elements.find((e) => e.id === id)
+      if (!source) return
+      const z = elements.length ? Math.max(...elements.map((e) => e.z)) + 1 : 1
+      const copy = {
+        ...source,
+        id: createId(),
+        x: source.x + 20,
+        y: source.y + 20,
+        z,
+      }
+      setElements((prev) => [...prev, copy])
+      setSelectedId(copy.id)
+    },
+    [elements]
+  )
+
+  const addPage = () => {
+    const next = totalPages + 1
+    setTotalPages(next)
+    setActivePage(next)
+    setSelectedId(null)
+  }
+
+  const removePage = () => {
+    if (totalPages <= 1) return
+    setElements((prev) =>
+      prev
+        .filter((e) => e.page !== activePage)
+        .map((e) => (e.page > activePage ? { ...e, page: e.page - 1 } : e))
+    )
+    setTotalPages((p) => p - 1)
+    setActivePage((p) => Math.max(1, p - 1))
+    setSelectedId(null)
+  }
+
+  const bringToFront = useCallback(
+    (id: string) => {
+      const maxZ = elements.length ? Math.max(...elements.map((e) => e.z)) : 1
+      updateElement(id, { z: maxZ + 1 })
+    },
+    [elements, updateElement]
+  )
+
+  const onCanvasContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const container = canvasRef.current
+    if (!container) return
+
+    const rect = container.getBoundingClientRect()
+    const target = (e.target as HTMLElement).closest("[data-element-id]") as HTMLElement | null
+    const targetId = target?.dataset.elementId ?? null
+
+    const rawX = e.clientX - rect.left - contentAreaPx.left
+    const rawY = e.clientY - rect.top - contentAreaPx.top
+
+    const canvasX = Math.max(0, Math.min(contentAreaPx.width - 24, rawX))
+    const canvasY = Math.max(0, Math.min(contentAreaPx.height - 24, rawY))
+
+    if (targetId) setSelectedId(targetId)
+
+    setContextMenu({
+      screenX: e.clientX,
+      screenY: e.clientY,
+      canvasX,
+      canvasY,
+      targetId,
+    })
+  }
+
+  const onElementMouseDown = (e: React.MouseEvent, id: string) => {
+    if (e.button !== 0) return
+    e.preventDefault()
+
+    const el = elements.find((item) => item.id === id)
+    if (!el) return
+
+    setSelectedId(id)
+    dragRef.current = {
+      id,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      startX: el.x,
+      startY: el.y,
+    }
+  }
+
+  useEffect(() => {
+    const handleMove = (e: MouseEvent) => {
+      if (!dragRef.current) return
+      const active = dragRef.current
+
+      const dx = e.clientX - active.startClientX
+      const dy = e.clientY - active.startClientY
+
+      setElements((prev) =>
+        prev.map((item) => {
+          if (item.id !== active.id) return item
+
+          const maxX = Math.max(0, contentAreaPx.width - item.w)
+          const maxY = Math.max(0, contentAreaPx.height - item.h)
+
+          const x = Math.max(0, Math.min(maxX, active.startX + dx))
+          const y = Math.max(0, Math.min(maxY, active.startY + dy))
+
+          return { ...item, x, y }
+        })
+      )
+    }
+
+    const handleUp = () => {
+      dragRef.current = null
+    }
+
+    window.addEventListener("mousemove", handleMove)
+    window.addEventListener("mouseup", handleUp)
+
+    return () => {
+      window.removeEventListener("mousemove", handleMove)
+      window.removeEventListener("mouseup", handleUp)
+    }
+  }, [contentAreaPx.height, contentAreaPx.width])
+
+  useEffect(() => {
+    const onOutside = (e: MouseEvent) => {
+      const menu = contextMenuRef.current
+      if (!menu) return
+      if (!menu.contains(e.target as Node)) setContextMenu(null)
+    }
+
+    if (contextMenu) {
+      window.addEventListener("mousedown", onOutside)
+      return () => window.removeEventListener("mousedown", onOutside)
+    }
+
+    return undefined
+  }, [contextMenu])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!selectedId) return
+      const target = e.target as HTMLElement
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return
+
+      const step = e.shiftKey ? 10 : 1
+      if (e.key === "Delete") {
+        removeElement(selectedId)
+        return
+      }
+      if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) return
+
+      e.preventDefault()
+      const selectedItem = elements.find((item) => item.id === selectedId)
+      if (!selectedItem) return
+
+      let nextX = selectedItem.x
+      let nextY = selectedItem.y
+
+      if (e.key === "ArrowLeft") nextX -= step
+      if (e.key === "ArrowRight") nextX += step
+      if (e.key === "ArrowUp") nextY -= step
+      if (e.key === "ArrowDown") nextY += step
+
+      const maxX = Math.max(0, contentAreaPx.width - selectedItem.w)
+      const maxY = Math.max(0, contentAreaPx.height - selectedItem.h)
+
+      updateElement(selectedId, {
+        x: Math.max(0, Math.min(maxX, nextX)),
+        y: Math.max(0, Math.min(maxY, nextY)),
+      })
+    }
+
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [contentAreaPx.height, contentAreaPx.width, elements, removeElement, selectedId, updateElement])
+
+  const handleUploadForSelected = (file: File) => {
+    if (!selected || selected.type !== "image") return
+    const reader = new FileReader()
+    reader.onload = () => {
+      updateElement(selected.id, {
+        imageData: reader.result as string,
+        imageName: file.name,
+      })
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const exportProject = () => {
+    const payload = {
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      settings,
+      meta,
+      totalPages,
+      elements,
+    }
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${meta.fileName || "pdf-canvas-project"}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const importProject = (file: File) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result)) as {
+          settings?: DocSettings
+          meta?: DocMeta
+          totalPages?: number
+          elements?: PdfElement[]
+        }
+
+        if (!parsed.elements || !Array.isArray(parsed.elements)) {
+          toast.error("Invalid project file")
+          return
+        }
+
+        if (parsed.settings) setSettings(parsed.settings)
+        if (parsed.meta) setMeta(parsed.meta)
+        if (parsed.totalPages) setTotalPages(Math.max(1, parsed.totalPages))
+
+        setElements(parsed.elements.map((el) => ({ ...el, id: el.id || createId() })))
+        setActivePage(1)
+        setSelectedId(null)
+        toast.success("Project imported")
+      } catch {
+        toast.error("Could not import project")
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  const generatePdf = useCallback(
+    async (openDialog: boolean) => {
+      if (elements.length === 0) {
+        toast.error("Add at least one element")
+        return
+      }
+
+      setGenerating(true)
+
+      const pxToMm = (px: number) => px / PX_PER_MM
+
+      const getImageMeta = (src: string) =>
+        new Promise<{ w: number; h: number; format: "PNG" | "JPEG" | "WEBP" }>((resolve, reject) => {
+          const img = new Image()
+          img.onload = () => {
+            const ext = (src.match(/^data:image\/(png|jpeg|jpg|webp)/i)?.[1] || "png").toLowerCase()
+            const format: "PNG" | "JPEG" | "WEBP" =
+              ext === "jpg" || ext === "jpeg" ? "JPEG" : ext === "webp" ? "WEBP" : "PNG"
+            resolve({ w: img.width, h: img.height, format })
+          }
+          img.onerror = () => reject(new Error("Image decode failed"))
+          img.src = src
+        })
+
+      try {
+        const doc = new jsPDF({
+          orientation: settings.orientation,
+          unit: "mm",
+          format: settings.pageSize,
+        })
+
+        doc.setProperties({
+          title: meta.title || "Canvas PDF",
+          author: meta.author,
+          subject: meta.subject,
+          keywords: meta.keywords,
+        })
+
+        for (let page = 1; page <= totalPages; page++) {
+          if (page > 1) doc.addPage()
+
+          const current = elements
+            .filter((item) => item.page === page)
+            .sort((a, b) => a.z - b.z)
+
+          for (const item of current) {
+            const x = settings.marginLeft + pxToMm(item.x)
+            const y = settings.marginTop + pxToMm(item.y)
+            const w = pxToMm(item.w)
+            const h = pxToMm(item.h)
+
+            if (item.type === "heading" || item.type === "text") {
+              const rgb = hexToRgb(item.color)
+              if (rgb) doc.setTextColor(rgb.r, rgb.g, rgb.b)
+              doc.setFont(settings.font, item.type === "heading" ? "bold" : "normal")
+              doc.setFontSize(item.fontSize)
+              const lines = doc.splitTextToSize(item.text || "", w)
+              const lineHeight = item.fontSize * 0.3528 * 1.2
+
+              let textX = x
+              if (item.align === "center") textX = x + w / 2
+              if (item.align === "right") textX = x + w
+
+              doc.text(lines, textX, y + lineHeight * 0.85, {
+                align: item.align,
+                maxWidth: w,
+              })
+              doc.setTextColor(0, 0, 0)
+              continue
+            }
+
+            if (item.type === "divider") {
+              const rgb = hexToRgb(item.borderColor)
+              if (rgb) doc.setDrawColor(rgb.r, rgb.g, rgb.b)
+              doc.setLineWidth(0.5)
+              doc.line(x, y + h / 2, x + w, y + h / 2)
+              continue
+            }
+
+            if (item.type === "box") {
+              const fill = hexToRgb(item.fillColor)
+              const border = hexToRgb(item.borderColor)
+              if (fill) doc.setFillColor(fill.r, fill.g, fill.b)
+              if (border) doc.setDrawColor(border.r, border.g, border.b)
+              doc.roundedRect(x, y, w, h, 1.8, 1.8, "FD")
+
+              const textColor = hexToRgb(item.color)
+              if (textColor) doc.setTextColor(textColor.r, textColor.g, textColor.b)
+              doc.setFont(settings.font, "normal")
+              doc.setFontSize(item.fontSize)
+              const lines = doc.splitTextToSize(item.text || "", w - 4)
+              doc.text(lines, x + 2, y + 4.5)
+              doc.setTextColor(0, 0, 0)
+              continue
+            }
+
+            if (item.type === "image" && item.imageData) {
+              const metaImage = await getImageMeta(item.imageData)
+              const targetRatio = w / h
+              const sourceRatio = metaImage.w / metaImage.h
+
+              let drawW = w
+              let drawH = h
+              if (sourceRatio > targetRatio) {
+                drawH = w / sourceRatio
+              } else {
+                drawW = h * sourceRatio
+              }
+
+              const dx = x + (w - drawW) / 2
+              const dy = y + (h - drawH) / 2
+
+              doc.addImage(item.imageData, metaImage.format, dx, dy, drawW, drawH)
+            }
+          }
+        }
+
+        const blob = doc.output("blob")
+        const dataUri = doc.output("datauristring")
+        setPdfBlob(blob)
+        setPdfDataUri(dataUri)
+
+        if (openDialog) setPreviewOpen(true)
+        toast.success(`PDF generated (${formatBytes(blob.size)})`)
+      } catch (error) {
+        console.error(error)
+        toast.error("Failed to generate PDF")
+      } finally {
+        setGenerating(false)
+      }
+    },
+    [elements, meta.author, meta.keywords, meta.subject, meta.title, settings, totalPages]
+  )
+
+  const downloadPdf = () => {
+    if (!pdfBlob) return
+    const url = URL.createObjectURL(pdfBlob)
+    const a = document.createElement("a")
+    const base = meta.fileName.trim() || "document"
+    a.href = url
+    a.download = base.endsWith(".pdf") ? base : `${base}.pdf`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      onClick={onClick}
-      onMouseEnter={(e) => { if (!isActive && !isDragging) (e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.015)") }}
-      onMouseLeave={(e) => { if (!isActive && !isDragging) (e.currentTarget.style.backgroundColor = isActive ? "rgba(59,130,246,0.04)" : "transparent") }}
-      className="group/preview"
+    <ToolPageLayout
+      icon={FilePlus}
+      title="Live PDF Generator"
+      description="Drag, place, and edit elements directly on the live PDF canvas. Right-click for quick element controls."
+      badge="Canvas PDF"
     >
-      {/* Drag handle — visible on hover, absolutely positioned */}
-      <div
-        {...attributes}
-        {...listeners}
-        className="absolute left-0 top-1/2 -translate-y-1/2 opacity-0 group-hover/preview:opacity-100 transition-opacity cursor-grab active:cursor-grabbing z-10 rounded p-0.5 hover:bg-black/5"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <GripVertical className="h-3.5 w-3.5" style={{ color: "#999" }} />
+      <div className="grid h-full min-h-0 grid-cols-1 gap-4 xl:grid-cols-[360px_1fr]">
+        <Card className="min-h-0 overflow-hidden">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm">Controls</CardTitle>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[10px]">P {activePage}/{totalPages}</Badge>
+                {pdfBlob && <Badge variant="secondary" className="text-[10px] font-mono">{formatBytes(pdfBlob.size)}</Badge>}
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="h-[calc(100%-4rem)] overflow-auto">
+            <div className="flex flex-wrap gap-2 pb-3">
+              <Button size="sm" onClick={() => generatePdf(true)} disabled={generating}>
+                {generating ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Eye className="mr-1.5 h-4 w-4" />} Preview
+              </Button>
+              <Button size="sm" variant="outline" onClick={downloadPdf} disabled={!pdfBlob}><Download className="mr-1.5 h-4 w-4" />Download</Button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 pb-3">
+              <Button size="sm" variant="outline" onClick={addPage}><Plus className="mr-1.5 h-4 w-4" />Page</Button>
+              <Button size="sm" variant="outline" onClick={removePage} disabled={totalPages === 1}><Trash2 className="mr-1.5 h-4 w-4" />Remove Page</Button>
+              <Button size="sm" variant="outline" onClick={exportProject}><Save className="mr-1.5 h-4 w-4" />Export</Button>
+              <Button size="sm" variant="outline" onClick={() => importInputRef.current?.click()}><FileUp className="mr-1.5 h-4 w-4" />Import</Button>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept="application/json"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) importProject(file)
+                  e.target.value = ""
+                }}
+              />
+            </div>
+
+            <Tabs value={leftTab} onValueChange={setLeftTab}>
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="elements">Elements</TabsTrigger>
+                <TabsTrigger value="selected">Selected</TabsTrigger>
+                <TabsTrigger value="document">Document</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="elements" className="space-y-3">
+                <QuickAdd title="Heading" icon={Type} onClick={() => addElement("heading")} />
+                <QuickAdd title="Text" icon={Type} onClick={() => addElement("text")} />
+                <QuickAdd title="Divider" icon={Minus} onClick={() => addElement("divider")} />
+                <QuickAdd title="Box" icon={Square} onClick={() => addElement("box")} />
+                <QuickAdd title="Image" icon={ImageIcon} onClick={() => addElement("image")} />
+                <p className="text-xs text-muted-foreground">Tip: Right-click on canvas to add at cursor position.</p>
+              </TabsContent>
+
+              <TabsContent value="selected" className="space-y-3">
+                {!selected && <p className="text-xs text-muted-foreground">Select an element to edit its properties.</p>}
+                {selected && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <Badge variant="outline" className="text-[10px] uppercase">{selected.type}</Badge>
+                      <Button size="sm" variant="ghost" onClick={() => bringToFront(selected.id)}>Bring Front</Button>
+                    </div>
+
+                    <Field label="X"><Input type="number" value={Math.round(selected.x)} onChange={(e) => updateElement(selected.id, { x: Math.max(0, Number(e.target.value) || 0) })} /></Field>
+                    <Field label="Y"><Input type="number" value={Math.round(selected.y)} onChange={(e) => updateElement(selected.id, { y: Math.max(0, Number(e.target.value) || 0) })} /></Field>
+                    <Field label="Width"><Input type="number" min={20} value={Math.round(selected.w)} onChange={(e) => updateElement(selected.id, { w: Math.max(20, Number(e.target.value) || 20) })} /></Field>
+                    <Field label="Height"><Input type="number" min={2} value={Math.round(selected.h)} onChange={(e) => updateElement(selected.id, { h: Math.max(2, Number(e.target.value) || 2) })} /></Field>
+
+                    {(selected.type === "heading" || selected.type === "text" || selected.type === "box") && (
+                      <>
+                        <Field label="Text">
+                          <Textarea value={selected.text} rows={4} className="resize-none" onChange={(e) => updateElement(selected.id, { text: e.target.value })} />
+                        </Field>
+                        <Field label="Font Size"><Input type="number" min={8} max={60} value={selected.fontSize} onChange={(e) => updateElement(selected.id, { fontSize: Number(e.target.value) || 12 })} /></Field>
+                        <Field label="Text Color"><ColorInput value={selected.color} onChange={(value) => updateElement(selected.id, { color: value })} /></Field>
+                      </>
+                    )}
+
+                    {(selected.type === "heading" || selected.type === "text") && (
+                      <Field label="Alignment">
+                        <select
+                          className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                          value={selected.align}
+                          onChange={(e) => updateElement(selected.id, { align: e.target.value as TextAlign })}
+                        >
+                          <option value="left">Left</option>
+                          <option value="center">Center</option>
+                          <option value="right">Right</option>
+                        </select>
+                      </Field>
+                    )}
+
+                    {selected.type === "divider" && (
+                      <Field label="Line Color"><ColorInput value={selected.borderColor} onChange={(value) => updateElement(selected.id, { borderColor: value })} /></Field>
+                    )}
+
+                    {selected.type === "box" && (
+                      <>
+                        <Field label="Fill Color"><ColorInput value={selected.fillColor} onChange={(value) => updateElement(selected.id, { fillColor: value })} /></Field>
+                        <Field label="Border Color"><ColorInput value={selected.borderColor} onChange={(value) => updateElement(selected.id, { borderColor: value })} /></Field>
+                        <Field label="Opacity"><Input type="number" min={0} max={1} step={0.05} value={selected.opacity} onChange={(e) => updateElement(selected.id, { opacity: Math.max(0, Math.min(1, Number(e.target.value) || 0)) })} /></Field>
+                      </>
+                    )}
+
+                    {selected.type === "image" && (
+                      <>
+                        <div className="flex flex-wrap gap-2">
+                          <Button size="sm" variant="outline" onClick={() => imageInputRef.current?.click()}><ImageIcon className="mr-1.5 h-4 w-4" />Upload</Button>
+                          <Button size="sm" variant="outline" onClick={() => updateElement(selected.id, { imageData: undefined, imageName: undefined })}>Clear</Button>
+                        </div>
+                        <input
+                          ref={imageInputRef}
+                          type="file"
+                          accept="image/png,image/jpeg,image/jpg,image/webp"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) handleUploadForSelected(file)
+                            e.target.value = ""
+                          }}
+                        />
+                        {selected.imageName && <p className="text-xs text-muted-foreground">{selected.imageName}</p>}
+                      </>
+                    )}
+
+                    <Button size="sm" variant="destructive" onClick={() => removeElement(selected.id)}>Delete Element</Button>
+                  </>
+                )}
+              </TabsContent>
+
+              <TabsContent value="document" className="space-y-3">
+                <Field label="File Name"><Input value={meta.fileName} onChange={(e) => updateMeta("fileName", e.target.value)} /></Field>
+                <Field label="Title"><Input value={meta.title} onChange={(e) => updateMeta("title", e.target.value)} /></Field>
+                <Field label="Author"><Input value={meta.author} onChange={(e) => updateMeta("author", e.target.value)} /></Field>
+                <Field label="Subject"><Input value={meta.subject} onChange={(e) => updateMeta("subject", e.target.value)} /></Field>
+                <Field label="Keywords"><Input value={meta.keywords} onChange={(e) => updateMeta("keywords", e.target.value)} /></Field>
+                <Separator />
+
+                <Field label="Page Size">
+                  <select className="h-9 w-full rounded-md border bg-background px-2 text-sm" value={settings.pageSize} onChange={(e) => updateSettings("pageSize", e.target.value as PageSize)}>
+                    {(Object.keys(PAGE_DIMENSIONS) as PageSize[]).map((size) => (
+                      <option key={size} value={size}>{PAGE_DIMENSIONS[size].label}</option>
+                    ))}
+                  </select>
+                </Field>
+
+                <Field label="Orientation">
+                  <select className="h-9 w-full rounded-md border bg-background px-2 text-sm" value={settings.orientation} onChange={(e) => updateSettings("orientation", e.target.value as Orientation)}>
+                    <option value="portrait">Portrait</option>
+                    <option value="landscape">Landscape</option>
+                  </select>
+                </Field>
+
+                <Field label="Font Family">
+                  <select className="h-9 w-full rounded-md border bg-background px-2 text-sm" value={settings.font} onChange={(e) => updateSettings("font", e.target.value as FontFamily)}>
+                    <option value="helvetica">Helvetica</option>
+                    <option value="times">Times</option>
+                    <option value="courier">Courier</option>
+                  </select>
+                </Field>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="Top"><Input type="number" min={5} max={40} value={settings.marginTop} onChange={(e) => updateSettings("marginTop", Number(e.target.value) || 10)} /></Field>
+                  <Field label="Right"><Input type="number" min={5} max={40} value={settings.marginRight} onChange={(e) => updateSettings("marginRight", Number(e.target.value) || 10)} /></Field>
+                  <Field label="Bottom"><Input type="number" min={5} max={40} value={settings.marginBottom} onChange={(e) => updateSettings("marginBottom", Number(e.target.value) || 10)} /></Field>
+                  <Field label="Left"><Input type="number" min={5} max={40} value={settings.marginLeft} onChange={(e) => updateSettings("marginLeft", Number(e.target.value) || 10)} /></Field>
+                </div>
+
+                <Field label="Page Background"><ColorInput value={settings.background} onChange={(value) => updateSettings("background", value)} /></Field>
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={settings.showGuides} onChange={(e) => updateSettings("showGuides", e.target.checked)} /> Show margin guides</label>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        <Card className="min-h-0 overflow-hidden">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-sm">Live Canvas</CardTitle>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setActivePage((p) => Math.max(1, p - 1))} disabled={activePage <= 1}>Prev</Button>
+                <Badge variant="outline" className="text-[10px]">Page {activePage} of {totalPages}</Badge>
+                <Button variant="outline" size="sm" onClick={() => setActivePage((p) => Math.min(totalPages, p + 1))} disabled={activePage >= totalPages}>Next</Button>
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="h-[calc(100%-4rem)] overflow-auto bg-muted/20">
+            <div className="flex min-h-full items-start justify-center py-4">
+              <div
+                ref={canvasRef}
+                className="relative select-none shadow-xl"
+                style={{
+                  width: pageSizePx.w,
+                  minHeight: pageSizePx.h,
+                  backgroundColor: settings.background,
+                }}
+                onMouseDown={() => setSelectedId(null)}
+                onContextMenu={onCanvasContextMenu}
+              >
+                <div
+                  className={cn(
+                    "absolute",
+                    settings.showGuides ? "border border-dashed border-slate-300" : "border border-transparent"
+                  )}
+                  style={{
+                    left: contentAreaPx.left,
+                    top: contentAreaPx.top,
+                    width: contentAreaPx.width,
+                    height: contentAreaPx.height,
+                  }}
+                >
+                  {pageElements.map((item) => {
+                    const isSelected = item.id === selectedId
+                    const isText = item.type === "heading" || item.type === "text"
+
+                    return (
+                      <div
+                        key={item.id}
+                        data-element-id={item.id}
+                        className={cn(
+                          "absolute",
+                          isSelected && "ring-2 ring-sky-400"
+                        )}
+                        style={{
+                          left: item.x,
+                          top: item.y,
+                          width: item.w,
+                          height: item.h,
+                          zIndex: item.z,
+                          cursor: "move",
+                        }}
+                        onMouseDown={(e) => onElementMouseDown(e, item.id)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedId(item.id)
+                        }}
+                      >
+                        {item.type === "divider" && (
+                          <div style={{ height: 2, marginTop: item.h / 2 }} className="w-full" >
+                            <div className="h-[2px] w-full" style={{ backgroundColor: item.borderColor }} />
+                          </div>
+                        )}
+
+                        {item.type === "box" && (
+                          <div
+                            className="h-full w-full rounded-md border p-2"
+                            style={{
+                              borderColor: item.borderColor,
+                              backgroundColor: item.fillColor,
+                              opacity: Math.max(0.05, item.opacity),
+                              color: item.color,
+                              fontSize: item.fontSize,
+                              textAlign: item.align,
+                              overflow: "hidden",
+                            }}
+                          >
+                            {item.text}
+                          </div>
+                        )}
+
+                        {item.type === "image" && (
+                          <div className="h-full w-full overflow-hidden rounded-md border border-slate-300 bg-slate-50">
+                            {item.imageData ? (
+                              <img src={item.imageData} alt={item.imageName || "image"} className="h-full w-full object-contain" draggable={false} />
+                            ) : (
+                              <div className="flex h-full items-center justify-center text-xs text-muted-foreground">Image Placeholder</div>
+                            )}
+                          </div>
+                        )}
+
+                        {isText && (
+                          <div
+                            contentEditable
+                            suppressContentEditableWarning
+                            spellCheck={false}
+                            className={cn("h-full w-full bg-transparent outline-none", item.type === "heading" ? "font-semibold" : "")}
+                            style={{
+                              color: item.color,
+                              fontSize: item.fontSize,
+                              textAlign: item.align,
+                              lineHeight: 1.3,
+                              whiteSpace: "pre-wrap",
+                              overflow: "hidden",
+                            }}
+                            onBlur={(e) => updateElement(item.id, { text: e.currentTarget.textContent || "" })}
+                            onMouseDown={(e) => {
+                              if (e.detail >= 2) e.stopPropagation()
+                            }}
+                          >
+                            {item.text}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Heading */}
-      {block.type === "heading" && (
-        <p style={{
-          fontSize: headingPx(block.headingLevel),
-          fontWeight: 700,
-          margin: 0,
-          opacity: block.content ? 1 : 0.15,
-          lineHeight: 1.3,
-          color: block.content ? block.textColor : undefined,
-        }}>
-          {block.content || `Heading ${block.headingLevel}`}
-        </p>
-      )}
-
-      {/* Paragraph */}
-      {block.type === "paragraph" && (
-        <p style={{
-          margin: 0,
-          whiteSpace: "pre-wrap",
-          opacity: block.content ? 1 : 0.15,
-          color: block.content ? block.textColor : undefined,
-        }}>
-          {block.content || "Paragraph text..."}
-        </p>
-      )}
-
-      {/* List */}
-      {block.type === "list" && (
-        <div style={{ color: block.textColor }}>
-          {block.content ? (
-            block.content.split("\n").filter((l) => l.trim()).map((item, i) => (
-              <p key={i} style={{ margin: 0, paddingLeft: "1.2em", textIndent: "-1.2em" }}>
-                <span style={{ color: "#888", marginRight: 4 }}>
-                  {block.listStyle === "numbered" ? `${i + 1}.` : "\u2022"}
-                </span>
-                {item}
-              </p>
-            ))
-          ) : (
-            <p style={{ opacity: 0.15, paddingLeft: "1.2em", margin: 0 }}>List items...</p>
-          )}
-        </div>
-      )}
-
-      {/* Quote */}
-      {block.type === "quote" && (
-        <div style={{
-          borderLeft: "3px solid #d4a050",
-          paddingLeft: "0.8em",
-          fontStyle: "italic",
-          color: block.content ? (block.textColor !== "#000000" ? block.textColor : "#666") : "#ccc",
-        }}>
-          <p style={{ margin: 0 }}>{block.content || "Quote text..."}</p>
-        </div>
-      )}
-
-      {/* Separator */}
-      {block.type === "separator" && (
-        <hr style={{ border: "none", borderTop: "1px solid #ccc", margin: 0, width: 200 }} />
-      )}
-
-      {/* Page Break */}
-      {block.type === "pagebreak" && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, width: 200 }}>
-          <div style={{ flex: 1, borderTop: "2px dashed #f90" }} />
-          <span style={{ fontSize: "0.6em", color: "#f90", letterSpacing: "0.12em", fontWeight: 600 }}>PAGE BREAK</span>
-          <div style={{ flex: 1, borderTop: "2px dashed #f90" }} />
-        </div>
-      )}
-
-      {/* Image */}
-      {block.type === "image" && (
-        <div style={{ textAlign: block.imageAlign }}>
-          {block.imageData ? (
+      {contextMenu && (
+        <div
+          ref={contextMenuRef}
+          className="fixed z-50 min-w-[220px] rounded-md border bg-popover p-1 shadow-lg"
+          style={{ left: contextMenu.screenX + 4, top: contextMenu.screenY + 4 }}
+        >
+          <ContextItem label="Add Heading" onClick={() => { addElement("heading", contextMenu.canvasX, contextMenu.canvasY); setContextMenu(null) }} />
+          <ContextItem label="Add Text" onClick={() => { addElement("text", contextMenu.canvasX, contextMenu.canvasY); setContextMenu(null) }} />
+          <ContextItem label="Add Divider" onClick={() => { addElement("divider", contextMenu.canvasX, contextMenu.canvasY); setContextMenu(null) }} />
+          <ContextItem label="Add Box" onClick={() => { addElement("box", contextMenu.canvasX, contextMenu.canvasY); setContextMenu(null) }} />
+          <ContextItem label="Add Image" onClick={() => { addElement("image", contextMenu.canvasX, contextMenu.canvasY); setContextMenu(null) }} />
+          <div className="my-1 border-t" />
+          <ContextItem label="Open Document Settings" onClick={() => { setLeftTab("document"); setContextMenu(null) }} />
+          {contextMenu.targetId && (
             <>
-              <img
-                src={block.imageData}
-                alt={block.imageName || "Image"}
-                style={{ width: `${block.imageWidth}%`, maxWidth: "100%", display: "inline-block", borderRadius: 3 }}
-              />
-              {block.imageCaption && (
-                <p style={{ fontSize: "0.8em", color: "#999", fontStyle: "italic", textAlign: "center", marginTop: 4, marginBottom: 0 }}>
-                  {block.imageCaption}
-                </p>
-              )}
+              <ContextItem label="Edit Selected Element" onClick={() => { setLeftTab("selected"); setSelectedId(contextMenu.targetId); setContextMenu(null) }} />
+              <ContextItem label="Duplicate Element" onClick={() => { duplicateElement(contextMenu.targetId!); setContextMenu(null) }} />
+              <ContextItem label="Delete Element" danger onClick={() => { removeElement(contextMenu.targetId!); setContextMenu(null) }} />
             </>
-          ) : (
-            <div style={{ padding: "1.5em", textAlign: "center", border: "1px dashed #ddd", borderRadius: 4 }}>
-              <p style={{ fontSize: "0.8em", color: "#ccc", margin: 0 }}>Image placeholder</p>
-            </div>
           )}
         </div>
       )}
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-[100vw] w-screen h-screen max-h-screen flex flex-col p-0 border-0 rounded-none">
+          <VisuallyHidden.Root>
+            <DialogTitle>PDF Preview</DialogTitle>
+            <DialogDescription>Preview of generated PDF</DialogDescription>
+          </VisuallyHidden.Root>
+          <div className="flex-1 min-h-0">
+            {pdfDataUri && (
+              <PdfViewer
+                data={pdfDataUri}
+                title={meta.title || "Canvas PDF Preview"}
+                onDownload={downloadPdf}
+                onClose={() => setPreviewOpen(false)}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </ToolPageLayout>
+  )
+}
+
+function QuickAdd({ title, icon: Icon, onClick }: { title: string; icon: React.ComponentType<{ className?: string }>; onClick: () => void }) {
+  return (
+    <Button variant="outline" className="w-full justify-start" onClick={onClick}>
+      <Icon className="mr-2 h-4 w-4" /> {title}
+    </Button>
+  )
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-[11px] text-muted-foreground">{label}</Label>
+      {children}
     </div>
   )
 }
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
+function ColorInput({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  return <AdvancedColorPicker value={value} onChange={onChange} />
+}
 
-function PdfGeneratorPage() {
-  const [settings, setSettings] = useState<DocumentSettings>(DEFAULT_SETTINGS)
-  const [blocks, setBlocks] = useState<ContentBlock[]>([createBlock("heading", 1), createBlock("paragraph", 1)])
-  const [activeBlockId, setActiveBlockId] = useState<string | null>(null)
-  const [mobileView, setMobileView] = useState<"editor" | "preview">("editor")
-  const [showSettings, setShowSettings] = useState(false)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
-  const [generating, setGenerating] = useState(false)
-  const [totalPages, setTotalPages] = useState(1)
-  const [currentPage, setCurrentPage] = useState(1)
-
-  const blockEditorRefs = useRef<Map<string, HTMLDivElement>>(new Map())
-  const imageInputRefs = useRef<Map<string, HTMLInputElement>>(new Map())
-
-  useEffect(() => {
-    return () => { if (previewUrl) URL.revokeObjectURL(previewUrl) }
-  }, [previewUrl])
-
-  // -- Settings --
-  const updateSetting = useCallback(<K extends keyof DocumentSettings>(key: K, value: DocumentSettings[K]) => {
-    setSettings((prev) => ({ ...prev, [key]: value }))
-  }, [])
-
-  // -- Blocks --
-  const addBlock = useCallback((type: BlockType) => {
-    setBlocks((prev) => {
-      // Place new block below the lowest existing block on the current page
-      const pageBlocks = prev.filter((b) => b.page === currentPage)
-      const maxY = pageBlocks.reduce((max, b) => Math.max(max, b.y), -40)
-      nextBlockY = maxY + 40
-      return [...prev, createBlock(type, currentPage)]
-    })
-  }, [currentPage])
-
-  const removeBlock = useCallback((id: string) => {
-    setBlocks((prev) => prev.filter((b) => b.id !== id))
-  }, [])
-
-  const updateBlock = useCallback((id: string, patch: Partial<ContentBlock>) => {
-    setBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)))
-  }, [])
-
-  const moveBlock = useCallback((id: string, direction: "up" | "down") => {
-    setBlocks((prev) => {
-      const idx = prev.findIndex((b) => b.id === id)
-      if (idx < 0) return prev
-      const targetIdx = direction === "up" ? idx - 1 : idx + 1
-      if (targetIdx < 0 || targetIdx >= prev.length) return prev
-      const next = [...prev]
-      ;[next[idx], next[targetIdx]] = [next[targetIdx]!, next[idx]!]
-      return next
-    })
-  }, [])
-
-  const addPage = useCallback(() => {
-    setTotalPages((p) => p + 1)
-    setCurrentPage((p) => p + 1)
-  }, [])
-
-  const removePage = useCallback((pageNum: number) => {
-    if (totalPages <= 1) return
-    // Remove blocks on the deleted page and shift pages above it down
-    setBlocks((prev) =>
-      prev
-        .filter((b) => b.page !== pageNum)
-        .map((b) => (b.page > pageNum ? { ...b, page: b.page - 1 } : b))
-    )
-    setTotalPages((p) => p - 1)
-    setCurrentPage((c) => (c > pageNum ? c - 1 : c > 1 && c === pageNum ? c - 1 : Math.min(c, totalPages - 1)))
-  }, [totalPages])
-
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
-
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, delta } = event
-    if (delta.x === 0 && delta.y === 0) return
-    const id = String(active.id)
-    setBlocks((prev) =>
-      prev.map((b) =>
-        b.id === id
-          ? { ...b, x: Math.max(0, b.x + delta.x), y: Math.max(0, b.y + delta.y) }
-          : b
-      )
-    )
-  }, [])
-
-  const handleImageUpload = useCallback((blockId: string, file: File) => {
-    const reader = new FileReader()
-    reader.onload = () => { updateBlock(blockId, { imageData: reader.result as string, imageName: file.name }) }
-    reader.readAsDataURL(file)
-  }, [updateBlock])
-
-  const handlePreviewBlockClick = useCallback((id: string) => {
-    setActiveBlockId(id)
-    const el = blockEditorRefs.current.get(id)
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })
-    setMobileView("editor")
-  }, [])
-
-  // -- PDF Generation --
-  const generatePdf = useCallback(() => {
-    setGenerating(true)
-    requestAnimationFrame(() => {
-      try {
-        const doc = new jsPDF({ orientation: settings.orientation, unit: "mm", format: settings.pageSize })
-        const pageWidth = doc.internal.pageSize.getWidth()
-        const contentWidth = pageWidth - settings.marginLeft - settings.marginRight
-
-        // Convert block pixel coords → mm.  Origin = inside margins.
-        const pxToMm = (px: number) => px / MM_SCALE
-
-        // Group blocks by page and sort within each page
-        for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
-          if (pageNum > 1) doc.addPage()
-          const pageBlocks = blocks.filter((b) => b.page === pageNum).sort((a, b) => a.y - b.y || a.x - b.x)
-
-        for (const block of pageBlocks) {
-          const bx = settings.marginLeft + pxToMm(block.x)
-          let by = settings.marginTop + pxToMm(block.y)
-          const maxTextW = contentWidth - pxToMm(block.x)
-
-          const renderTextAt = (text: string, fontSize: number, fontStyle: string, startX: number, startY: number, textW: number) => {
-            doc.setFont(settings.font, fontStyle)
-            doc.setFontSize(fontSize)
-            const lh = fontSize * 0.3528 * settings.lineSpacing
-            const lines = doc.splitTextToSize(text, textW)
-            let cy = startY
-            for (const line of lines) { doc.text(line, startX, cy + lh * 0.75); cy += lh }
-          }
-
-          switch (block.type) {
-            case "heading": {
-              if (!block.content.trim()) break
-              const rgb = hexToRgb(block.textColor)
-              if (rgb) doc.setTextColor(rgb.r, rgb.g, rgb.b)
-              const mult = block.headingLevel === 1 ? 2 : block.headingLevel === 2 ? 1.5 : 1.25
-              renderTextAt(block.content, settings.fontSize * mult, "bold", bx, by, maxTextW)
-              doc.setTextColor(0, 0, 0)
-              break
-            }
-            case "paragraph": {
-              if (!block.content.trim()) break
-              const rgb = hexToRgb(block.textColor)
-              if (rgb) doc.setTextColor(rgb.r, rgb.g, rgb.b)
-              renderTextAt(block.content, settings.fontSize, "normal", bx, by, maxTextW)
-              doc.setTextColor(0, 0, 0)
-              break
-            }
-            case "list": {
-              const rgb = hexToRgb(block.textColor)
-              if (rgb) doc.setTextColor(rgb.r, rgb.g, rgb.b)
-              const items = block.content.split("\n").filter((l) => l.trim())
-              const lh = settings.fontSize * 0.3528 * settings.lineSpacing
-              let cy = by
-              for (let i = 0; i < items.length; i++) {
-                const prefix = block.listStyle === "numbered" ? `${i + 1}. ` : "\u2022 "
-                doc.setFont(settings.font, "normal"); doc.setFontSize(settings.fontSize)
-                doc.text(prefix + items[i]!, bx, cy + lh * 0.75)
-                cy += lh
-              }
-              doc.setTextColor(0, 0, 0)
-              break
-            }
-            case "quote": {
-              if (!block.content.trim()) break
-              const barX = bx + 2
-              doc.setFont(settings.font, "italic"); doc.setFontSize(settings.fontSize)
-              const lh = settings.fontSize * 0.3528 * settings.lineSpacing
-              const lines = doc.splitTextToSize(block.content, maxTextW - 10)
-              const quoteRgb = block.textColor !== "#000000" ? hexToRgb(block.textColor) : null
-              let cy = by
-              for (const line of lines) {
-                if (quoteRgb) doc.setTextColor(quoteRgb.r, quoteRgb.g, quoteRgb.b); else doc.setTextColor(120, 120, 120)
-                doc.text(line, bx + 8, cy + lh * 0.75); cy += lh
-              }
-              doc.setTextColor(0, 0, 0)
-              doc.setDrawColor(180, 180, 180); doc.setLineWidth(0.8)
-              doc.line(barX, by, barX, cy)
-              break
-            }
-            case "separator": {
-              doc.setDrawColor(160, 160, 160); doc.setLineWidth(0.3)
-              doc.line(bx, by, bx + Math.min(pxToMm(200), contentWidth), by)
-              break
-            }
-            case "pagebreak": { doc.addPage(); break }
-            case "image": {
-              if (!block.imageData) break
-              try {
-                const fm = block.imageData.match(/data:image\/(png|jpeg|jpg|gif|webp)/i)
-                const format = fm ? fm[1]!.toUpperCase().replace("JPG", "JPEG") : "PNG"
-                const imgWidth = contentWidth * (block.imageWidth / 100)
-                let imgX = bx
-                if (block.imageAlign === "center") imgX = bx + (maxTextW - imgWidth) / 2
-                else if (block.imageAlign === "right") imgX = bx + maxTextW - imgWidth
-                doc.addImage(block.imageData, format, imgX, by, imgWidth, 0)
-                if (block.imageCaption.trim()) {
-                  const capLh = settings.fontSize * 0.85 * 0.3528 * settings.lineSpacing
-                  const estimatedH = imgWidth * 0.75
-                  doc.setFont(settings.font, "italic"); doc.setFontSize(settings.fontSize * 0.85); doc.setTextColor(120, 120, 120)
-                  const capLines = doc.splitTextToSize(block.imageCaption, maxTextW)
-                  let cy = by + estimatedH + capLh * 0.3
-                  for (const l of capLines) { const tw = doc.getTextWidth(l); doc.text(l, bx + (maxTextW - tw) / 2, cy + capLh * 0.75); cy += capLh }
-                  doc.setTextColor(0, 0, 0)
-                }
-              } catch { /* skip */ }
-              break
-            }
-          }
-        }
-        } // end page loop
-
-        const blob = doc.output("blob")
-        const url = URL.createObjectURL(blob)
-        if (previewUrl) URL.revokeObjectURL(previewUrl)
-        setPreviewUrl(url); setPdfBlob(blob)
-        toast.success("PDF generated successfully")
-      } catch (err) {
-        toast.error(`Failed to generate PDF: ${err instanceof Error ? err.message : "Unknown error"}`)
-      } finally { setGenerating(false) }
-    })
-  }, [settings, blocks, previewUrl, totalPages])
-
-  const downloadPdf = useCallback(() => {
-    if (!pdfBlob || !previewUrl) return
-    const a = document.createElement("a"); a.href = previewUrl; a.download = "document.pdf"
-    document.body.appendChild(a); a.click(); document.body.removeChild(a)
-    toast.success("PDF downloaded")
-  }, [pdfBlob, previewUrl])
-
-  const resetAll = useCallback(() => {
-    setSettings(DEFAULT_SETTINGS)
-    nextBlockY = 0
-    setBlocks([createBlock("heading", 1), createBlock("paragraph", 1)])
-    setTotalPages(1)
-    setCurrentPage(1)
-    if (previewUrl) URL.revokeObjectURL(previewUrl)
-    setPreviewUrl(null); setPdfBlob(null); setActiveBlockId(null)
-    toast.success("Reset to defaults")
-  }, [previewUrl])
-
-  // -- Heading size for live preview --
-  const headingPx = (level: HeadingLevel) => settings.fontSize * (level === 1 ? 2 : level === 2 ? 1.5 : 1.25)
-
-  // =====================================================================
-  // Render
-  // =====================================================================
-
+function ContextItem({ label, onClick, danger = false }: { label: string; onClick: () => void; danger?: boolean }) {
   return (
-    <ToolPageLayout
-      variant="scroll"
-      icon={FilePlus}
-      title="PDF Generator"
-      description="Create professional PDFs — content blocks render live on the page preview."
-      badge="PDF"
-      maxWidth="max-w-6xl"
+    <button
+      onClick={onClick}
+      className={cn(
+        "w-full rounded px-2 py-1.5 text-left text-xs hover:bg-accent",
+        danger && "text-destructive hover:bg-destructive/10"
+      )}
     >
-
-      {/* -------- Mobile view toggle -------- */}
-      <div className="flex lg:hidden rounded-lg border bg-muted/30 p-0.5">
-        {(["editor", "preview"] as const).map((view) => (
-          <button
-            key={view}
-            onClick={() => setMobileView(view)}
-            className={cn(
-              "flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all",
-              mobileView === view ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
-            )}
-          >
-            {view === "editor" ? <Pencil className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-            {view === "editor" ? "Editor" : "Preview"}
-          </button>
-        ))}
-      </div>
-
-      {/* -------- Main two-column layout -------- */}
-      <div className="grid gap-4 lg:grid-cols-2 items-start">
-
-        {/* ============================================================= */}
-        {/* LEFT COLUMN: Editor                                            */}
-        {/* ============================================================= */}
-        <div className={cn("space-y-4", mobileView === "preview" && "hidden lg:block")}>
-
-          {/* -- Document Settings (collapsible) -- */}
-          <Card>
-            <CardContent className="p-3 sm:p-4">
-              <button
-                onClick={() => setShowSettings(!showSettings)}
-                className="flex w-full items-center gap-2 text-left"
-              >
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10">
-                  <Settings className="h-3.5 w-3.5 text-primary" />
-                </div>
-                <span className="text-sm font-semibold tracking-tight flex-1">Document Settings</span>
-                <Badge variant="outline" className="text-[10px] mr-1">
-                  {PAGE_DIMENSIONS[settings.pageSize].label} · {settings.orientation === "portrait" ? "P" : "L"}
-                </Badge>
-                <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", showSettings && "rotate-90")} />
-              </button>
-
-              {showSettings && (
-                <div className="mt-4 space-y-4">
-                  <Separator />
-
-                  {/* Page Size */}
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium text-muted-foreground">Page Size</Label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {(Object.entries(PAGE_DIMENSIONS) as [PageSize, typeof PAGE_DIMENSIONS.a4][]).map(([key, dim]) => (
-                        <button
-                          key={key}
-                          onClick={() => updateSetting("pageSize", key)}
-                          className={cn(
-                            "rounded-md border px-3 py-1.5 text-xs font-medium transition-all",
-                            settings.pageSize === key
-                              ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                              : "border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground"
-                          )}
-                        >
-                          {dim.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Orientation */}
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium text-muted-foreground">Orientation</Label>
-                    <div className="inline-flex rounded-lg border bg-muted/30 p-0.5">
-                      {(["portrait", "landscape"] as Orientation[]).map((o) => (
-                        <button
-                          key={o}
-                          onClick={() => updateSetting("orientation", o)}
-                          className={cn(
-                            "inline-flex items-center gap-2 rounded-md px-4 py-2 text-xs font-medium transition-all",
-                            settings.orientation === o ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                          )}
-                        >
-                          <div className={cn(
-                            "rounded-[2px] border-2 transition-colors",
-                            o === "portrait" ? "h-4 w-3" : "h-3 w-4",
-                            settings.orientation === o ? "border-primary" : "border-muted-foreground/40"
-                          )} />
-                          {o === "portrait" ? "Portrait" : "Landscape"}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Font */}
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium text-muted-foreground">Font Family</Label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {FONTS.map((f) => (
-                        <button
-                          key={f.value}
-                          onClick={() => updateSetting("font", f.value)}
-                          className={cn(
-                            "inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs transition-all",
-                            FONT_CSS[f.value],
-                            settings.font === f.value
-                              ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                              : "border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground"
-                          )}
-                        >
-                          <Type className="h-3 w-3" />
-                          {f.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Font Size + Line Spacing */}
-                  <div className="grid gap-4 grid-cols-2">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs font-medium text-muted-foreground">Font Size</Label>
-                        <Badge variant="outline" className="text-[10px] font-mono">{settings.fontSize}pt</Badge>
-                      </div>
-                      <input type="range" min={8} max={48} step={1} value={settings.fontSize}
-                        onChange={(e) => updateSetting("fontSize", Number(e.target.value))}
-                        className="w-full accent-primary" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs font-medium text-muted-foreground">Line Spacing</Label>
-                        <Badge variant="outline" className="text-[10px] font-mono">{settings.lineSpacing.toFixed(1)}×</Badge>
-                      </div>
-                      <input type="range" min={1} max={3} step={0.1} value={settings.lineSpacing}
-                        onChange={(e) => updateSetting("lineSpacing", Number(e.target.value))}
-                        className="w-full accent-primary" />
-                    </div>
-                  </div>
-
-                  {/* Margins — proper 3×3 grid alignment */}
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium text-muted-foreground">Margins (mm)</Label>
-                    <div className="grid grid-cols-[1fr_auto_1fr] gap-1.5 items-center justify-items-center max-w-[260px] mx-auto py-2">
-                      {/* Row 1: empty · Top · empty */}
-                      <div />
-                      <div className="flex flex-col items-center gap-0.5">
-                        <span className="text-[9px] text-muted-foreground">Top</span>
-                        <Input type="number" min={0} max={100} value={settings.marginTop}
-                          onChange={(e) => updateSetting("marginTop", Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
-                          className="h-7 w-16 text-center text-xs font-mono" />
-                      </div>
-                      <div />
-
-                      {/* Row 2: Left · Page · Right */}
-                      <div className="flex flex-col items-center gap-0.5">
-                        <span className="text-[9px] text-muted-foreground">Left</span>
-                        <Input type="number" min={0} max={100} value={settings.marginLeft}
-                          onChange={(e) => updateSetting("marginLeft", Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
-                          className="h-7 w-16 text-center text-xs font-mono" />
-                      </div>
-                      <div className="flex h-14 w-20 items-center justify-center rounded border-2 border-dashed border-primary/25 bg-primary/5">
-                        <span className="text-[9px] text-primary/50 font-medium tracking-wide">Content</span>
-                      </div>
-                      <div className="flex flex-col items-center gap-0.5">
-                        <span className="text-[9px] text-muted-foreground">Right</span>
-                        <Input type="number" min={0} max={100} value={settings.marginRight}
-                          onChange={(e) => updateSetting("marginRight", Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
-                          className="h-7 w-16 text-center text-xs font-mono" />
-                      </div>
-
-                      {/* Row 3: empty · Bottom · empty */}
-                      <div />
-                      <div className="flex flex-col items-center gap-0.5">
-                        <Input type="number" min={0} max={100} value={settings.marginBottom}
-                          onChange={(e) => updateSetting("marginBottom", Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
-                          className="h-7 w-16 text-center text-xs font-mono" />
-                        <span className="text-[9px] text-muted-foreground">Bottom</span>
-                      </div>
-                      <div />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* -- Page Navigation -- */}
-          <Card>
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10">
-                    <FileStack className="h-3.5 w-3.5 text-primary" />
-                  </div>
-                  <h2 className="text-sm font-semibold tracking-tight">Pages</h2>
-                  <Badge variant="secondary" className="text-[10px] font-mono">{totalPages}</Badge>
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={addPage}>
-                      <Plus className="mr-1 h-3 w-3" /> Add Page
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Add a new page</TooltipContent>
-                </Tooltip>
-              </div>
-              <div className="flex items-center gap-1.5 mt-3 flex-wrap">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pg) => (
-                  <div key={pg} className="flex items-center">
-                    <button
-                      onClick={() => setCurrentPage(pg)}
-                      className={cn(
-                        "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-all",
-                        currentPage === pg
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "bg-muted/30 text-muted-foreground hover:bg-accent hover:text-foreground border border-border"
-                      )}
-                    >
-                      Page {pg}
-                      <Badge variant="outline" className="text-[9px] font-mono ml-0.5 px-1 py-0 h-4">
-                        {blocks.filter((b) => b.page === pg).length}
-                      </Badge>
-                    </button>
-                    {totalPages > 1 && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5 ml-0.5 text-destructive/40 hover:text-destructive hover:bg-destructive/10"
-                            onClick={(e) => { e.stopPropagation(); removePage(pg) }}
-                          >
-                            <Trash2 className="h-2.5 w-2.5" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Remove page {pg}</TooltipContent>
-                      </Tooltip>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* -- Content Blocks -- */}
-          <Card>
-            <CardContent className="p-3 sm:p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10">
-                    <FileText className="h-3.5 w-3.5 text-primary" />
-                  </div>
-                  <h2 className="text-sm font-semibold tracking-tight">Content Blocks</h2>
-                  <Badge variant="secondary" className="text-[10px] font-mono">{blocks.filter((b) => b.page === currentPage).length}</Badge>
-                  <Badge variant="outline" className="text-[9px]">Page {currentPage}</Badge>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Button variant="ghost" size="sm" onClick={resetAll} className="text-muted-foreground h-7 px-2 text-xs">
-                    <RotateCcw className="mr-1 h-3 w-3" /> Reset
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-7 px-2 text-xs">
-                        <Plus className="mr-1 h-3 w-3" /> Add
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-40">
-                      {BLOCK_TYPE_LIST.map((bt) => {
-                        const meta = BLOCK_META[bt]
-                        const Icon = meta.icon
-                        return (
-                          <DropdownMenuItem key={bt} onClick={() => addBlock(bt)}>
-                            <Icon className={cn("mr-2 h-3.5 w-3.5", meta.color)} />
-                            {meta.label}
-                          </DropdownMenuItem>
-                        )
-                      })}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-
-              <Separator />
-
-              {blocks.filter((b) => b.page === currentPage).length === 0 && (
-                <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
-                  <FileText className="h-8 w-8 mb-2 opacity-40" />
-                  <p className="text-xs font-medium">No content blocks on page {currentPage}</p>
-                  <p className="text-[11px] mt-0.5">Click "Add" to start building your document.</p>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                {blocks.filter((b) => b.page === currentPage).map((block, index) => {
-                  const meta = BLOCK_META[block.type]
-                  const Icon = meta.icon
-                  const isActive = block.id === activeBlockId
-                  return (
-                    <div
-                      key={block.id}
-                      ref={(el) => { if (el) blockEditorRefs.current.set(block.id, el) }}
-                      onClick={() => setActiveBlockId(block.id)}
-                      className={cn(
-                        "rounded-lg border-l-[3px] border bg-card p-2.5 sm:p-3 space-y-2 transition-all cursor-pointer",
-                        meta.border,
-                        isActive ? "ring-1 ring-primary/30 shadow-sm" : "hover:shadow-sm"
-                      )}
-                    >
-                      {/* Header */}
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <GripVertical className="h-3.5 w-3.5 text-muted-foreground/25 shrink-0" />
-                        <div className={cn("inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium", meta.bg, meta.color)}>
-                          <Icon className="h-2.5 w-2.5" />
-                          {meta.label}
-                        </div>
-                        <Badge variant="outline" className="text-[9px] font-mono">#{index + 1}</Badge>
-
-                        {/* Heading level */}
-                        {block.type === "heading" && (
-                          <div className="inline-flex rounded border bg-muted/30 p-0.5 ml-0.5">
-                            {([1, 2, 3] as HeadingLevel[]).map((lvl) => {
-                              const LI = lvl === 1 ? Heading1 : lvl === 2 ? Heading2 : Heading3
-                              return (
-                                <button key={lvl}
-                                  onClick={(e) => { e.stopPropagation(); updateBlock(block.id, { headingLevel: lvl }) }}
-                                  className={cn("rounded-[3px] px-1.5 py-0.5 text-[9px] font-medium transition-all inline-flex items-center gap-0.5",
-                                    block.headingLevel === lvl ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                                  )}>
-                                  <LI className="h-2.5 w-2.5" /> H{lvl}
-                                </button>
-                              )
-                            })}
-                          </div>
-                        )}
-
-                        {/* List style */}
-                        {block.type === "list" && (
-                          <div className="inline-flex rounded border bg-muted/30 p-0.5 ml-0.5">
-                            {([{ v: "bullet" as ListStyle, icon: List, l: "Bullet" }, { v: "numbered" as ListStyle, icon: ListOrdered, l: "Num" }]).map((opt) => (
-                              <button key={opt.v}
-                                onClick={(e) => { e.stopPropagation(); updateBlock(block.id, { listStyle: opt.v }) }}
-                                className={cn("rounded-[3px] px-1.5 py-0.5 text-[9px] font-medium transition-all inline-flex items-center gap-0.5",
-                                  block.listStyle === opt.v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                                )}>
-                                <opt.icon className="h-2.5 w-2.5" /> {opt.l}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Text color picker */}
-                        {(block.type === "heading" || block.type === "paragraph" || block.type === "list" || block.type === "quote") && (
-                          <div className="inline-flex items-center gap-0.5 ml-0.5" onClick={(e) => e.stopPropagation()}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <label className="relative inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border border-border transition-all hover:scale-110"
-                                  style={{ backgroundColor: block.textColor }}>
-                                  <input type="color" value={block.textColor}
-                                    onChange={(e) => updateBlock(block.id, { textColor: e.target.value })}
-                                    className="absolute inset-0 cursor-pointer opacity-0" />
-                                </label>
-                              </TooltipTrigger>
-                              <TooltipContent>Text color</TooltipContent>
-                            </Tooltip>
-                            {block.textColor !== "#000000" && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-5 w-5 opacity-50 hover:opacity-100"
-                                    onClick={() => updateBlock(block.id, { textColor: "#000000" })}>
-                                    <RotateCcw className="h-2.5 w-2.5" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Reset color</TooltipContent>
-                              </Tooltip>
-                            )}
-                          </div>
-                        )}
-
-                        <div className="ml-auto flex items-center gap-0.5">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6 opacity-40 hover:opacity-100" disabled={index === 0}
-                                onClick={(e) => { e.stopPropagation(); moveBlock(block.id, "up") }}>
-                                <ChevronUp className="h-3 w-3" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Move up</TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6 opacity-40 hover:opacity-100" disabled={index === blocks.filter((b) => b.page === currentPage).length - 1}
-                                onClick={(e) => { e.stopPropagation(); moveBlock(block.id, "down") }}>
-                                <ChevronDown className="h-3 w-3" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Move down</TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/50 hover:text-destructive hover:bg-destructive/10"
-                                onClick={(e) => { e.stopPropagation(); removeBlock(block.id) }}>
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Delete block</TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </div>
-
-                      {/* Content */}
-                      {block.type === "heading" && (
-                        <Input
-                          placeholder={`${block.headingLevel === 1 ? "Main" : block.headingLevel === 2 ? "Section" : "Sub"} heading...`}
-                          value={block.content}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => updateBlock(block.id, { content: e.target.value })}
-                          className={cn("h-8 font-semibold border-0 bg-muted/20 focus-visible:bg-muted/30 text-xs", block.headingLevel === 1 && "text-sm")}
-                        />
-                      )}
-
-                      {block.type === "paragraph" && (
-                        <Textarea placeholder="Paragraph text..." value={block.content}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => updateBlock(block.id, { content: e.target.value })}
-                          rows={3} className="resize-none border-0 bg-muted/20 focus-visible:bg-muted/30 text-xs" />
-                      )}
-
-                      {block.type === "list" && (
-                        <Textarea placeholder={"One item per line...\nItem 1\nItem 2"} value={block.content}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => updateBlock(block.id, { content: e.target.value })}
-                          rows={3} className="resize-none border-0 bg-muted/20 focus-visible:bg-muted/30 text-xs" />
-                      )}
-
-                      {block.type === "quote" && (
-                        <Textarea placeholder="Quote text..." value={block.content}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => updateBlock(block.id, { content: e.target.value })}
-                          rows={2} className="resize-none border-0 bg-muted/20 focus-visible:bg-muted/30 text-xs italic" />
-                      )}
-
-                      {block.type === "separator" && (
-                        <div className="flex items-center gap-2 py-1">
-                          <div className="h-px flex-1 bg-border" />
-                          <span className="text-[9px] text-muted-foreground/50 uppercase tracking-widest">HR</span>
-                          <div className="h-px flex-1 bg-border" />
-                        </div>
-                      )}
-
-                      {block.type === "pagebreak" && (
-                        <div className="flex items-center gap-2 py-1">
-                          <div className="flex-1 border-t-2 border-dashed border-orange-400/30" />
-                          <ScissorsLineDashed className="h-3 w-3 text-orange-400/40" />
-                          <div className="flex-1 border-t-2 border-dashed border-orange-400/30" />
-                        </div>
-                      )}
-
-                      {block.type === "image" && (
-                        <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
-                          <div
-                            onClick={() => imageInputRefs.current.get(block.id)?.click()}
-                            className={cn(
-                              "flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed transition-all",
-                              block.imageData ? "border-purple-400/20 bg-purple-400/5 p-2" : "border-muted-foreground/15 py-5 hover:border-primary/30"
-                            )}
-                          >
-                            {block.imageData ? (
-                              <div className="space-y-1 w-full">
-                                <img src={block.imageData} alt={block.imageName || ""} className="max-h-28 max-w-full rounded object-contain mx-auto" />
-                                <p className="text-[10px] text-muted-foreground text-center">{block.imageName} — Click to replace</p>
-                              </div>
-                            ) : (
-                              <>
-                                <ImageIcon className="h-5 w-5 text-muted-foreground/30 mb-1" />
-                                <p className="text-[11px] text-muted-foreground">Click to upload image</p>
-                              </>
-                            )}
-                            <input ref={(el) => { if (el) imageInputRefs.current.set(block.id, el) }}
-                              type="file" accept="image/png,image/jpeg,image/gif,image/webp" className="hidden"
-                              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(block.id, f); e.target.value = "" }} />
-                          </div>
-
-                          {block.imageData && (
-                            <div className="space-y-2 rounded border bg-muted/10 p-2">
-                              <div className="flex items-center justify-between">
-                                <span className="text-[10px] text-muted-foreground">Align</span>
-                                <div className="inline-flex rounded border bg-muted/30 p-0.5">
-                                  {([{ v: "left" as ImageAlign, icon: AlignLeft, label: "Left" }, { v: "center" as ImageAlign, icon: AlignCenter, label: "Center" }, { v: "right" as ImageAlign, icon: AlignRight, label: "Right" }]).map((a) => (
-                                    <Tooltip key={a.v}>
-                                      <TooltipTrigger asChild>
-                                        <button onClick={() => updateBlock(block.id, { imageAlign: a.v })}
-                                          className={cn("rounded-[3px] p-1 transition-all",
-                                            block.imageAlign === a.v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                                          )}>
-                                          <a.icon className="h-3 w-3" />
-                                        </button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>{a.label}</TooltipContent>
-                                    </Tooltip>
-                                  ))}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-muted-foreground shrink-0">Width</span>
-                                <input type="range" min={10} max={100} step={5} value={block.imageWidth}
-                                  onChange={(e) => updateBlock(block.id, { imageWidth: Number(e.target.value) })}
-                                  className="flex-1 accent-primary" />
-                                <span className="text-[10px] font-mono text-muted-foreground w-8 text-right">{block.imageWidth}%</span>
-                              </div>
-                              <Input placeholder="Caption (optional)..." value={block.imageCaption}
-                                onChange={(e) => updateBlock(block.id, { imageCaption: e.target.value })}
-                                className="h-7 text-[11px] border-0 bg-background" />
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-
-              {/* Quick add */}
-              {blocks.length > 0 && (
-                <div className="flex items-center gap-1 pt-1">
-                  <span className="text-[9px] text-muted-foreground mr-0.5">Add:</span>
-                  {BLOCK_TYPE_LIST.map((bt) => {
-                    const BIcon = BLOCK_META[bt].icon
-                    return (
-                      <Tooltip key={bt}>
-                        <TooltipTrigger asChild>
-                          <button onClick={() => addBlock(bt)}
-                            className="inline-flex h-6 w-6 items-center justify-center rounded border border-dashed border-muted-foreground/15 text-muted-foreground/40 transition-all hover:border-primary/30 hover:text-primary hover:bg-primary/5">
-                            <BIcon className="h-2.5 w-2.5" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>{BLOCK_META[bt].label}</TooltipContent>
-                      </Tooltip>
-                    )
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* ============================================================= */}
-        {/* RIGHT COLUMN: Live Preview                                      */}
-        {/* ============================================================= */}
-        <div className={cn("lg:sticky lg:top-4 space-y-4", mobileView === "editor" && "hidden lg:block")}>
-          <Card>
-            <CardContent className="p-3 sm:p-4 space-y-3">
-              {/* Preview header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10">
-                    <Eye className="h-3.5 w-3.5 text-primary" />
-                  </div>
-                  <h2 className="text-sm font-semibold tracking-tight">Live Preview</h2>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Button size="sm" className="h-7 px-2.5 text-xs gap-1.5" onClick={generatePdf} disabled={generating || blocks.length === 0}>
-                    {generating ? (
-                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-                    ) : (
-                      <Download className="h-3 w-3" />
-                    )}
-                    {generating ? "..." : "Generate"}
-                  </Button>
-                  {pdfBlob && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={downloadPdf}>
-                          <Download className="h-3 w-3" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Download PDF</TooltipContent>
-                    </Tooltip>
-                  )}
-                </div>
-              </div>
-
-              {/* Page navigation for preview */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="outline" size="icon" className="h-7 w-7"
-                        disabled={currentPage <= 1}
-                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}>
-                        <ChevronLeft className="h-3.5 w-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Previous page</TooltipContent>
-                  </Tooltip>
-                  <span className="text-xs font-medium text-muted-foreground">
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="outline" size="icon" className="h-7 w-7"
-                        disabled={currentPage >= totalPages}
-                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}>
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Next page</TooltipContent>
-                  </Tooltip>
-                </div>
-              )}
-
-              {/* Live page surface */}
-              <div className="rounded-lg border bg-muted/30 p-3 sm:p-4">
-                <div
-                  className={cn("bg-white rounded-sm shadow-lg mx-auto transition-all", FONT_CSS[settings.font])}
-                  style={{
-                    position: "relative",
-                    paddingTop: settings.marginTop * MM_SCALE,
-                    paddingRight: settings.marginRight * MM_SCALE,
-                    paddingBottom: Math.max(settings.marginBottom * MM_SCALE, 40),
-                    paddingLeft: settings.marginLeft * MM_SCALE,
-                    fontSize: settings.fontSize,
-                    lineHeight: settings.lineSpacing,
-                    color: "#1a1a1a",
-                    minHeight: 500,
-                    overflow: "hidden",
-                  }}
-                >
-                  {blocks.filter((b) => b.page === currentPage).length === 0 ? (
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200, color: "#ccc", fontSize: 13 }}>
-                      {blocks.length === 0 ? "Add content blocks to see preview" : `Page ${currentPage} is empty`}
-                    </div>
-                  ) : (
-                    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-                      <div style={{ position: "relative", minHeight: 460 }}>
-                        {blocks.filter((b) => b.page === currentPage).map((block) => (
-                          <DraggablePreviewBlock
-                            key={block.id}
-                            block={block}
-                            isActive={block.id === activeBlockId}
-                            headingPx={headingPx}
-                            onClick={() => handlePreviewBlockClick(block.id)}
-                          />
-                        ))}
-                      </div>
-                    </DndContext>
-                  )}
-                </div>
-              </div>
-
-              {pdfBlob && (
-                <div className="flex items-center justify-between">
-                  <Badge variant="secondary" className="font-mono text-[10px]">{formatBytes(pdfBlob.size)}</Badge>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Generated PDF iframe */}
-          {previewUrl && (
-            <Card>
-              <CardContent className="p-3 sm:p-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-semibold text-muted-foreground">Generated PDF</h3>
-                  <Button variant="outline" size="sm" className="h-6 px-2 text-[10px]" onClick={downloadPdf}>
-                    <Download className="mr-1 h-2.5 w-2.5" /> Download
-                  </Button>
-                </div>
-                <div className="rounded-lg border overflow-hidden">
-                  <iframe src={previewUrl} title="PDF Preview" className="h-[400px] w-full border-0" />
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
-    </ToolPageLayout>
+      {label}
+    </button>
   )
 }

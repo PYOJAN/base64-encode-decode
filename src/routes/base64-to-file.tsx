@@ -132,7 +132,7 @@ function Base64ToFilePage() {
       )}
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-[100vw] w-screen h-screen max-h-screen flex flex-col p-0 border-0 rounded-none">
+        <DialogContent className="pdf-preview-dialog flex h-[90vh] w-[85vw] max-w-[85vw] flex-col overflow-visible border-0 bg-transparent p-0 shadow-none">
           <VisuallyHidden.Root>
             <DialogTitle>File Preview</DialogTitle>
             <DialogDescription>
@@ -140,18 +140,17 @@ function Base64ToFilePage() {
             </DialogDescription>
           </VisuallyHidden.Root>
 
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-hidden rounded-lg bg-background">
             {isPdf && (
               <PdfViewer
                 data={`data:application/pdf;base64,${data}`}
                 title="Decoded PDF Preview"
                 onDownload={handleDownload}
-                onClose={() => setPreviewOpen(false)}
               />
             )}
 
             {isImage && (
-              <div className="h-full flex flex-col">
+              <div className="h-full flex flex-col overflow-hidden rounded-lg border bg-background">
                 <div className="flex items-center justify-between px-4 py-2 border-b bg-card">
                   <span className="text-xs font-medium text-muted-foreground truncate">Image Preview</span>
                   <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive" onClick={() => setPreviewOpen(false)}>

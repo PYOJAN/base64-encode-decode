@@ -155,18 +155,16 @@ function Base64ToPdfPage() {
       )}
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-[100vw] w-screen h-screen max-h-screen flex flex-col p-0 border-0 rounded-none">
+        <DialogContent className="pdf-preview-dialog flex h-[90vh] w-[85vw] max-w-[85vw] flex-col overflow-visible border-0 bg-transparent p-0 shadow-none">
           <VisuallyHidden.Root>
             <DialogTitle>PDF Preview</DialogTitle>
             <DialogDescription>Preview of the decoded PDF</DialogDescription>
           </VisuallyHidden.Root>
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-hidden rounded-lg bg-background">
             {valid && (
               <PdfViewer
                 data={pdfDataUri}
                 title="Decoded PDF Preview"
-                onDownload={handleDownload}
-                onClose={() => setPreviewOpen(false)}
               />
             )}
           </div>

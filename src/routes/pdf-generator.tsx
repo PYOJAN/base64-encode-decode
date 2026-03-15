@@ -1043,18 +1043,17 @@ function PdfGeneratorPage() {
       )}
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-[100vw] w-screen h-screen max-h-screen flex flex-col p-0 border-0 rounded-none">
+        <DialogContent className="pdf-preview-dialog flex h-[90vh] w-[85vw] max-w-[85vw] flex-col overflow-visible border-0 bg-transparent p-0 shadow-none">
           <VisuallyHidden.Root>
             <DialogTitle>PDF Preview</DialogTitle>
             <DialogDescription>Preview of generated PDF</DialogDescription>
           </VisuallyHidden.Root>
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-hidden rounded-lg bg-background">
             {pdfDataUri && (
               <PdfViewer
                 data={pdfDataUri}
                 title={meta.title || "Canvas PDF Preview"}
                 onDownload={downloadPdf}
-                onClose={() => setPreviewOpen(false)}
               />
             )}
           </div>

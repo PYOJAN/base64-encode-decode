@@ -1,0 +1,1 @@
+import{j as e}from"./index-CXRPzxfg.js";function i({show:t,valid:s,validLabel:r="Valid",invalidLabel:n="Invalid"}){return t?e.jsxs("div",{className:"flex items-center gap-3 shrink-0",children:[e.jsx("div",{className:`h-2 w-2 rounded-full ${s?"bg-emerald-500":"bg-destructive"}`}),e.jsx("span",{className:"text-xs text-muted-foreground",children:s?r:n})]}):null}export{i as V};

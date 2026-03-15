@@ -20,12 +20,12 @@ interface PdfViewerProps {
   onClose?: () => void
 }
 
-const VERIFYKIT_ASSET_BASE = import.meta.env.BASE_URL
+const VERIFYKIT_PUBLIC_ASSET_BASE = "/base64-encode-decode/"
 
 const VERIFYKIT_CONFIG = {
-  workerUrl: `${VERIFYKIT_ASSET_BASE}pdf.worker.min.mjs`,
-  cMapUrl: `${VERIFYKIT_ASSET_BASE}cmaps/`,
-  standardFontDataUrl: `${VERIFYKIT_ASSET_BASE}standard_fonts/`,
+  workerUrl: 'https://unpkg.com/pdfjs-dist@5.5.207/legacy/build/pdf.worker.min.mjs',
+  cMapUrl: `${VERIFYKIT_PUBLIC_ASSET_BASE}cmaps/`,
+  standardFontDataUrl: `${VERIFYKIT_PUBLIC_ASSET_BASE}standard_fonts/`,
   theme: { mode: "system" as const },
   plugins: [
     revocationPlugin({

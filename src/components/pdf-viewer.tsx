@@ -91,7 +91,7 @@ function PdfViewerContent({
     }
   }, [data, title, verification.load, verification.reset])
 
-  const errorMessage = loadError ?? verification.error
+  const errorMessage = loadError ?? (verification.error ? String(verification.error) : null)
   const isReady = Boolean(verification.fileBuffer)
 
   return (

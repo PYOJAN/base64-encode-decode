@@ -20,10 +20,11 @@ interface PdfViewerProps {
   onClose?: () => void
 }
 
-const VERIFYKIT_PUBLIC_ASSET_BASE = import.meta.env.BASE_URL
+const VERIFYKIT_PUBLIC_ASSET_BASE = import.meta.env.BASE_URL;
+const PDFJS_WORKER = 'https://unpkg.com/pdfjs-dist@5.5.207/legacy/build/pdf.worker.min.mjs';
 
 const VERIFYKIT_CONFIG = {
-  workerUrl: `${VERIFYKIT_PUBLIC_ASSET_BASE}pdf.worker.min.mjs`,
+  workerUrl: PDFJS_WORKER,
   cMapUrl: `${VERIFYKIT_PUBLIC_ASSET_BASE}cmaps/`,
   standardFontDataUrl: `${VERIFYKIT_PUBLIC_ASSET_BASE}standard_fonts/`,
   theme: { mode: "system" as const },

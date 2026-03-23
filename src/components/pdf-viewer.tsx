@@ -20,10 +20,10 @@ interface PdfViewerProps {
   onClose?: () => void
 }
 
-const VERIFYKIT_PUBLIC_ASSET_BASE = "/base64-encode-decode/"
+const VERIFYKIT_PUBLIC_ASSET_BASE = import.meta.env.BASE_URL
 
 const VERIFYKIT_CONFIG = {
-  workerUrl: 'https://unpkg.com/pdfjs-dist@5.5.207/legacy/build/pdf.worker.min.mjs',
+  workerUrl: `${VERIFYKIT_PUBLIC_ASSET_BASE}pdf.worker.min.mjs`,
   cMapUrl: `${VERIFYKIT_PUBLIC_ASSET_BASE}cmaps/`,
   standardFontDataUrl: `${VERIFYKIT_PUBLIC_ASSET_BASE}standard_fonts/`,
   theme: { mode: "system" as const },
@@ -51,6 +51,7 @@ function PdfViewerContent({
 }: PdfViewerProps) {
   const verification = useVerification()
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [isPreparing, setIsPreparing] = useState(true)
   const [layout] = useState(() =>
     defaultLayoutPlugin({
       disable: {
@@ -66,10 +67,12 @@ function PdfViewerContent({
     const loadPdf = async () => {
       verification.reset()
       setLoadError(null)
+      setIsPreparing(true)
 
       const trimmed = data.trim()
       if (!trimmed) {
         setLoadError("No PDF data provided.")
+        setIsPreparing(false)
         return
       }
 
@@ -81,6 +84,10 @@ function PdfViewerContent({
       } catch (error) {
         if (cancelled) return
         setLoadError(error instanceof Error ? error.message : "Failed to load PDF.")
+      } finally {
+        if (!cancelled) {
+          setIsPreparing(false)
+        }
       }
     }
 
@@ -91,8 +98,15 @@ function PdfViewerContent({
     }
   }, [data, title, verification.load, verification.reset])
 
-  const errorMessage = loadError ?? (verification.error ? String(verification.error) : null)
+  const errorMessage =
+    loadError ??
+    (verification.error instanceof Error
+      ? verification.error.message
+      : verification.error
+        ? String(verification.error)
+        : null)
   const isReady = Boolean(verification.fileBuffer)
+  const isLoading = isPreparing || verification.isLoading
 
   return (
     <div
@@ -140,7 +154,7 @@ function PdfViewerContent({
             signaturePanelOpen={false}
           />
         </div>
-      ) : verification.isLoading ? (
+      ) : isLoading ? (
         <div className="flex flex-1 items-center justify-center bg-muted/20">
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />

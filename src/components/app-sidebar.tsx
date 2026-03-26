@@ -28,6 +28,7 @@ import {
   FileKey,
   FileSearch,
   PenTool,
+  FileCheck2,
   ChevronRight,
   type LucideIcon,
 } from "lucide-react"
@@ -66,6 +67,7 @@ const navGroups: NavGroup[] = [
   {
     label: "PDF Tools",
     items: [
+      { title: "PDF Verification", url: "/pdf-verification", icon: FileCheck2 },
       { title: "PDF to Base64", url: "/pdf-to-base64", icon: FileUp },
       { title: "Base64 to PDF", url: "/base64-to-pdf", icon: FileDown },
       { title: "PDF Generator", url: "/pdf-generator", icon: FilePlus },

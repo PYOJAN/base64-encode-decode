@@ -20,6 +20,7 @@ import { Route as RegexTesterRouteImport } from './routes/regex-tester'
 import { Route as Pkcs7ViewerRouteImport } from './routes/pkcs7-viewer'
 import { Route as PfxConverterRouteImport } from './routes/pfx-converter'
 import { Route as PemConverterRouteImport } from './routes/pem-converter'
+import { Route as PdfVerificationRouteImport } from './routes/pdf-verification'
 import { Route as PdfToBase64RouteImport } from './routes/pdf-to-base64'
 import { Route as PdfGeneratorRouteImport } from './routes/pdf-generator'
 import { Route as NumberBaseRouteImport } from './routes/number-base'
@@ -95,6 +96,11 @@ const PfxConverterRoute = PfxConverterRouteImport.update({
 const PemConverterRoute = PemConverterRouteImport.update({
   id: '/pem-converter',
   path: '/pem-converter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PdfVerificationRoute = PdfVerificationRouteImport.update({
+  id: '/pdf-verification',
+  path: '/pdf-verification',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PdfToBase64Route = PdfToBase64RouteImport.update({
@@ -225,6 +231,7 @@ export interface FileRoutesByFullPath {
   '/number-base': typeof NumberBaseRoute
   '/pdf-generator': typeof PdfGeneratorRoute
   '/pdf-to-base64': typeof PdfToBase64Route
+  '/pdf-verification': typeof PdfVerificationRoute
   '/pem-converter': typeof PemConverterRoute
   '/pfx-converter': typeof PfxConverterRoute
   '/pkcs7-viewer': typeof Pkcs7ViewerRoute
@@ -259,6 +266,7 @@ export interface FileRoutesByTo {
   '/number-base': typeof NumberBaseRoute
   '/pdf-generator': typeof PdfGeneratorRoute
   '/pdf-to-base64': typeof PdfToBase64Route
+  '/pdf-verification': typeof PdfVerificationRoute
   '/pem-converter': typeof PemConverterRoute
   '/pfx-converter': typeof PfxConverterRoute
   '/pkcs7-viewer': typeof Pkcs7ViewerRoute
@@ -294,6 +302,7 @@ export interface FileRoutesById {
   '/number-base': typeof NumberBaseRoute
   '/pdf-generator': typeof PdfGeneratorRoute
   '/pdf-to-base64': typeof PdfToBase64Route
+  '/pdf-verification': typeof PdfVerificationRoute
   '/pem-converter': typeof PemConverterRoute
   '/pfx-converter': typeof PfxConverterRoute
   '/pkcs7-viewer': typeof Pkcs7ViewerRoute
@@ -330,6 +339,7 @@ export interface FileRouteTypes {
     | '/number-base'
     | '/pdf-generator'
     | '/pdf-to-base64'
+    | '/pdf-verification'
     | '/pem-converter'
     | '/pfx-converter'
     | '/pkcs7-viewer'
@@ -364,6 +374,7 @@ export interface FileRouteTypes {
     | '/number-base'
     | '/pdf-generator'
     | '/pdf-to-base64'
+    | '/pdf-verification'
     | '/pem-converter'
     | '/pfx-converter'
     | '/pkcs7-viewer'
@@ -398,6 +409,7 @@ export interface FileRouteTypes {
     | '/number-base'
     | '/pdf-generator'
     | '/pdf-to-base64'
+    | '/pdf-verification'
     | '/pem-converter'
     | '/pfx-converter'
     | '/pkcs7-viewer'
@@ -433,6 +445,7 @@ export interface RootRouteChildren {
   NumberBaseRoute: typeof NumberBaseRoute
   PdfGeneratorRoute: typeof PdfGeneratorRoute
   PdfToBase64Route: typeof PdfToBase64Route
+  PdfVerificationRoute: typeof PdfVerificationRoute
   PemConverterRoute: typeof PemConverterRoute
   PfxConverterRoute: typeof PfxConverterRoute
   Pkcs7ViewerRoute: typeof Pkcs7ViewerRoute
@@ -523,6 +536,13 @@ declare module '@tanstack/react-router' {
       path: '/pem-converter'
       fullPath: '/pem-converter'
       preLoaderRoute: typeof PemConverterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pdf-verification': {
+      id: '/pdf-verification'
+      path: '/pdf-verification'
+      fullPath: '/pdf-verification'
+      preLoaderRoute: typeof PdfVerificationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pdf-to-base64': {
@@ -697,6 +717,7 @@ const rootRouteChildren: RootRouteChildren = {
   NumberBaseRoute: NumberBaseRoute,
   PdfGeneratorRoute: PdfGeneratorRoute,
   PdfToBase64Route: PdfToBase64Route,
+  PdfVerificationRoute: PdfVerificationRoute,
   PemConverterRoute: PemConverterRoute,
   PfxConverterRoute: PfxConverterRoute,
   Pkcs7ViewerRoute: Pkcs7ViewerRoute,

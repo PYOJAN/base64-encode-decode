@@ -14,6 +14,7 @@ import {
   Globe, Binary, Fingerprint, SearchCode, Table, Palette,
   FileJson, GitCompareArrows, KeyRound, FileArchive, FileX2, Link2,
   FilePlus2, FilePlus, FileKey, FileSearch, PenTool,
+  FileCheck2,
   type LucideIcon,
 } from "lucide-react"
 
@@ -25,6 +26,7 @@ interface ToolEntry {
 }
 
 const tools: ToolEntry[] = [
+  { title: "PDF Verification", url: "/pdf-verification", icon: FileCheck2, keywords: "verifykit pdf signature verification adobe signing validate pades" },
   { title: "PDF to Base64", url: "/pdf-to-base64", icon: FileUp, keywords: "pdf encode upload" },
   { title: "Base64 to PDF", url: "/base64-to-pdf", icon: FileDown, keywords: "pdf decode download" },
   { title: "PDF Generator", url: "/pdf-generator", icon: FilePlus, keywords: "pdf create generate document" },

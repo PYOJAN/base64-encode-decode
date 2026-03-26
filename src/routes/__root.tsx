@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
-import { createRootRoute, Outlet, useRouterState } from "@tanstack/react-router"
+import { Link, createRootRoute, Outlet, useRouterState } from "@tanstack/react-router"
 import { Toaster } from "sonner"
-import { GithubIcon, Search } from "lucide-react"
+import { GithubIcon, Search, ShieldCheck } from "lucide-react"
 import {
   SidebarProvider,
   SidebarInset,
@@ -23,6 +23,7 @@ const pageMeta: Record<string, PageMeta> = {
   "/": { title: "Home", description: "Free online developer utilities — Base64, PDF, certificates, JSON/XML/YAML formatters, hash, JWT, regex, and 20+ more tools. All processing happens locally in your browser." },
   "/certificate-decoder": { title: "Certificate Decoder", description: "Decode and inspect X.509 certificates and CSRs online. View subject, issuer, validity, extensions, SANs, key usage, and fingerprints. No data leaves your browser." },
   "/pem-converter": { title: "PEM / DER Converter", description: "Convert between PEM and DER certificate formats online. Supports X.509 certificates, keys, and CSRs. Free browser-based tool." },
+  "/pdf-verification": { title: "PDF Verification", description: "Verify PDF digital signatures in your browser with Adobe-style status messaging, signature panels, and VerifyKit SDK settings. Supports browser-based CRL and OCSP checks." },
   "/pdf-to-base64": { title: "PDF to Base64", description: "Convert PDF files to Base64 encoded strings online. Free, fast, and private — your PDF never leaves your browser." },
   "/base64-to-pdf": { title: "Base64 to PDF", description: "Decode Base64 strings back to PDF files with live preview. Free online tool, all processing in your browser." },
   "/pdf-generator": { title: "PDF Generator", description: "Create professional PDF documents with headings, paragraphs, images, and multi-page support. Drag-and-drop editor with live preview." },
@@ -110,13 +111,21 @@ function RootLayout() {
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
-          <header className="flex h-12 shrink-0 items-center gap-2 border-b bg-background px-3 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+          <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-2 border-b bg-background/95 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
             <SidebarTrigger className="-ml-0.5" />
             <Separator orientation="vertical" className="h-4" />
             <span className="text-sm font-medium text-muted-foreground truncate">
               {pageTitle}
             </span>
             <div className="ml-auto flex items-center gap-2">
+              <Link
+                to="/pdf-verification"
+                className="hidden items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-700 transition-colors hover:bg-emerald-500/15 dark:text-emerald-300 md:flex"
+              >
+                <ShieldCheck className="h-3.5 w-3.5" />
+                <span>Adobe-style PDF signature verification</span>
+              </Link>
+
               <Button
                 variant="outline"
                 size="sm"

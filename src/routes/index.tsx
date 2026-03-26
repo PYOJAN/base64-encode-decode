@@ -26,6 +26,7 @@ import {
   FileX2,
   Link2,
   FilePlus2,
+  FileCheck2,
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -34,6 +35,14 @@ export const Route = createFileRoute("/")({
 })
 
 const tools = [
+  {
+    title: "PDF Verification",
+    description: "Adobe-style PDF signature verification with live VerifyKit SDK settings",
+    icon: FileCheck2,
+    url: "/pdf-verification",
+    color: "text-emerald-400",
+    bg: "bg-emerald-400/10",
+  },
   {
     title: "PDF to Base64",
     description: "Encode PDF files to Base64 with preview",

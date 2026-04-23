@@ -33,6 +33,8 @@ interface CodeEditorProps {
   minHeight?: string
   fillHeight?: boolean
   theme?: EditorTheme
+  showLineNumbers?: boolean
+  lineWrapping?: boolean
 }
 
 const langExtensions: Record<Language, (() => ReturnType<typeof json>) | null> = {
@@ -54,6 +56,8 @@ export function CodeEditor({
   minHeight = "200px",
   fillHeight = false,
   theme = "dracula",
+  showLineNumbers = false,
+  lineWrapping = true,
 }: CodeEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
@@ -77,8 +81,7 @@ export function CodeEditor({
     }
 
     const extensions = [
-      lineNumbers(),
-      highlightActiveLineGutter(),
+      ...(showLineNumbers ? [lineNumbers(), highlightActiveLineGutter()] : []),
       highlightActiveLine(),
       history(),
       bracketMatching(),
@@ -88,6 +91,7 @@ export function CodeEditor({
       ...(langExt ? [langExt()] : []),
       keymap.of([...defaultKeymap, ...historyKeymap, ...foldKeymap]),
       EditorView.theme(themeStyles),
+      ...(lineWrapping ? [EditorView.lineWrapping] : []),
     ]
 
     if (placeholder) {
@@ -114,9 +118,9 @@ export function CodeEditor({
       view.destroy()
       viewRef.current = null
     }
-    // Re-create editor when language, readOnly, or theme changes
+    // Re-create editor when language, readOnly, theme, or settings change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [language, readOnly, theme])
+  }, [language, readOnly, theme, showLineNumbers, lineWrapping])
 
   // Sync external value changes without re-creating the editor
   useEffect(() => {

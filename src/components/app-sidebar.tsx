@@ -30,6 +30,7 @@ import {
   PenTool,
   FileCheck2,
   ChevronRight,
+  ExternalLink,
   type LucideIcon,
 } from "lucide-react"
 import {
@@ -185,7 +186,7 @@ export function AppSidebar() {
               defaultOpen={hasActiveItem}
               className="group/collapsible"
             >
-              <SidebarGroup>
+              <SidebarGroup className="py-1">
                 <SidebarGroupLabel
                   asChild
                   className="group/label cursor-pointer select-none hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors duration-150"
@@ -196,8 +197,11 @@ export function AppSidebar() {
                     <ChevronRight className="ml-auto size-3.5 text-sidebar-foreground/30 transition-all duration-200 group-hover/label:text-sidebar-foreground/70 group-data-[state=open]/collapsible:rotate-90" />
                   </CollapsibleTrigger>
                 </SidebarGroupLabel>
-                <CollapsibleContent>
-                  <SidebarGroupContent>
+                <CollapsibleContent
+                  forceMount
+                  className="grid transition-[grid-template-rows] duration-200 ease-in-out grid-rows-[0fr] data-[state=open]:grid-rows-[1fr] group-data-[collapsible=icon]:!grid-rows-[1fr]"
+                >
+                  <SidebarGroupContent className="overflow-hidden">
                     <SidebarMenu>
                       {group.items.map((item) => {
                         const active = currentPath === item.url
@@ -228,8 +232,17 @@ export function AppSidebar() {
       {/* Footer */}
       <SidebarFooter className="group-data-[collapsible=icon]:hidden">
         <SidebarSeparator />
-        <div className="px-2 py-2">
-          <p className="text-[10px] text-sidebar-foreground/25 text-center leading-relaxed">
+        <div className="px-3 py-3 space-y-1.5">
+          <a
+            href="https://trexolab.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-[11px] font-medium text-sidebar-foreground/40 hover:text-sidebar-primary transition-colors duration-150"
+          >
+            Developed by Trexolab
+            <ExternalLink className="size-2.5" />
+          </a>
+          <p className="text-[10px] text-sidebar-foreground/25 leading-relaxed">
             Ctrl+B sidebar &middot; Ctrl+K search
           </p>
         </div>

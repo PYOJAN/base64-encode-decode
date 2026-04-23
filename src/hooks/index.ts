@@ -1,4 +1,6 @@
 export { useEditorTheme } from "./use-editor-theme"
+export { useEditorSettings } from "./use-editor-settings"
+export type { EditorSettings } from "./use-editor-settings"
 export { useTransform } from "./use-transform"
 export { useClipboard } from "./use-clipboard"
 export { useDebounce } from "./use-debounce"

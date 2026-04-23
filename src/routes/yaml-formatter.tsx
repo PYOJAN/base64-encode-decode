@@ -9,10 +9,12 @@ import {
   ToolbarTrailing,
   CopyButton,
   EditorThemePicker,
+  EditorSettingsBar,
   ErrorBanner,
   DualEditorLayout,
 } from "@/components"
-import { useEditorTheme, useTransform } from "@/hooks"
+import { useEditorTheme, useEditorSettings, useTransform } from "@/hooks"
+import { toErrorMessage } from "@/lib/utils"
 import yaml from "js-yaml"
 
 export const Route = createFileRoute("/yaml-formatter")({
@@ -23,6 +25,7 @@ function YamlFormatterPage() {
   const [input, setInput] = useState("")
   const [indent, setIndent] = useState<string>("2")
   const { theme, setTheme, setPreviewTheme, effectiveTheme } = useEditorTheme()
+  const { settings, toggleLineNumbers, toggleLineWrapping } = useEditorSettings()
 
   const getIndent = useCallback(() => {
     if (indent === "tab") return 2
@@ -45,7 +48,7 @@ function YamlFormatterPage() {
       setOutput(yaml.dump(parsed, { indent: getIndent() }))
       setError("")
     } catch (e) {
-      setError((e as Error).message)
+      setError(toErrorMessage(e))
       setOutput("")
     }
   }
@@ -57,7 +60,7 @@ function YamlFormatterPage() {
       setOutput(yaml.dump(parsed, { flowLevel: 0 }))
       setError("")
     } catch (e) {
-      setError((e as Error).message)
+      setError(toErrorMessage(e))
       setOutput("")
     }
   }
@@ -69,7 +72,7 @@ function YamlFormatterPage() {
       setOutput(JSON.stringify(parsed, null, getIndent()))
       setError("")
     } catch (e) {
-      setError((e as Error).message)
+      setError(toErrorMessage(e))
       setOutput("")
     }
   }
@@ -81,7 +84,7 @@ function YamlFormatterPage() {
       setOutput(yaml.dump(parsed, { indent: getIndent() }))
       setError("")
     } catch (e) {
-      setError((e as Error).message)
+      setError(toErrorMessage(e))
       setOutput("")
     }
   }
@@ -112,6 +115,7 @@ function YamlFormatterPage() {
         </Button>
         <ToolbarTrailing>
           <CopyButton value={output} />
+          <EditorSettingsBar settings={settings} onToggleLineNumbers={toggleLineNumbers} onToggleLineWrapping={toggleLineWrapping} />
           <EditorThemePicker theme={theme} onThemeChange={setTheme} onPreviewChange={setPreviewTheme} />
           <Tabs value={indent} onValueChange={setIndent}>
             <TabsList className="h-8">
@@ -129,6 +133,7 @@ function YamlFormatterPage() {
         left={{ label: "Input", value: input, onChange: setInput, language: "yaml", placeholder: "Paste YAML or JSON here..." }}
         right={{ label: "Output", value: output, language: "yaml", readOnly: true, placeholder: "Formatted output..." }}
         theme={effectiveTheme}
+        editorSettings={settings}
       />
     </ToolPageLayout>
   )

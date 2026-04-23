@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import {
   BookOpen,
@@ -261,10 +261,12 @@ function PdfVerificationPage() {
       workerUrl,
     ]
   )
-  const viewerRenderKey = useMemo(
-    () => JSON.stringify(viewerOptions),
-    [viewerOptions]
-  )
+  const renderCounter = useRef(0)
+  const viewerRenderKey = useMemo(() => {
+    renderCounter.current += 1
+    return renderCounter.current
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewerOptions])
 
   const configWarnings = [
     themeOverrides.error,
@@ -464,6 +466,9 @@ function PdfVerificationPage() {
                   ) : (
                     <Badge variant="outline">Waiting for PDF</Badge>
                   )}
+                  <Badge className="bg-violet-500/15 text-violet-700 hover:bg-violet-500/15 dark:text-violet-300">
+                    v{__VERIFYKIT_VERSION__}
+                  </Badge>
                 </div>
 
                 <div className="flex flex-wrap gap-2">

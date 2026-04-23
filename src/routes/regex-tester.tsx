@@ -53,7 +53,7 @@ function RegexTesterPage() {
     } catch (e) {
       return {
         regex: null,
-        error: (e as Error).message,
+        error: e instanceof Error ? e.message : String(e),
         matches: [] as MatchResult[],
       }
     }

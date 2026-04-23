@@ -27,6 +27,7 @@ export function CopyButton({
         <Button
           variant="ghost"
           size="sm"
+          aria-label="Copy to clipboard"
           onClick={() => copy(value, label)}
         >
           <Copy className="mr-1 h-3.5 w-3.5" />

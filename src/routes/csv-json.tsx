@@ -8,10 +8,12 @@ import {
   Toolbar,
   ToolbarTrailing,
   EditorThemePicker,
+  EditorSettingsBar,
   ErrorBanner,
   DualEditorLayout,
 } from "@/components"
-import { useClipboard, useDebounce, useEditorTheme } from "@/hooks"
+import { useClipboard, useDebounce, useEditorTheme, useEditorSettings } from "@/hooks"
+import { toErrorMessage } from "@/lib/utils"
 
 export const Route = createFileRoute("/csv-json")({
   component: CsvJsonPage,
@@ -111,6 +113,7 @@ function CsvJsonPage() {
   const [delimiter, setDelimiter] = useState<Delimiter>(",")
   const [direction, setDirection] = useState<"csv-to-json" | "json-to-csv">("csv-to-json")
   const { theme, setTheme, setPreviewTheme, effectiveTheme } = useEditorTheme()
+  const { settings, toggleLineNumbers, toggleLineWrapping } = useEditorSettings()
   const { copy } = useClipboard()
 
   const debouncedCsv = useDebounce(csv, 400)
@@ -123,7 +126,7 @@ function CsvJsonPage() {
         const rows = parseCsv(csvInput, delimiter)
         if (rows.length === 0) { setError("CSV must have a header row and at least one data row"); setJsonText(""); return }
         setJsonText(JSON.stringify(rows, null, 2)); setError("")
-      } catch (e) { setError((e as Error).message); setJsonText("") }
+      } catch (e) { setError(toErrorMessage(e)); setJsonText("") }
     },
     [delimiter]
   )
@@ -137,7 +140,7 @@ function CsvJsonPage() {
         if (parsed.length === 0) { setError("JSON array is empty"); setCsv(""); return }
         if (typeof parsed[0] !== "object" || parsed[0] === null) { setError("JSON array items must be objects"); setCsv(""); return }
         setCsv(jsonToCsvText(parsed as Record<string, unknown>[], delimiter)); setError("")
-      } catch (e) { setError((e as Error).message); setCsv("") }
+      } catch (e) { setError(toErrorMessage(e)); setCsv("") }
     },
     [delimiter]
   )
@@ -191,6 +194,7 @@ function CsvJsonPage() {
               ))}
             </TabsList>
           </Tabs>
+          <EditorSettingsBar settings={settings} onToggleLineNumbers={toggleLineNumbers} onToggleLineWrapping={toggleLineWrapping} />
           <EditorThemePicker theme={theme} onThemeChange={setTheme} onPreviewChange={setPreviewTheme} />
         </ToolbarTrailing>
       </Toolbar>
@@ -201,6 +205,7 @@ function CsvJsonPage() {
         left={{ label: "CSV", value: csv, onChange: setCsv, language: "text", placeholder: "Paste CSV here..." }}
         right={{ label: "JSON", value: jsonText, onChange: setJsonText, language: "json", placeholder: "Paste JSON here..." }}
         theme={effectiveTheme}
+        editorSettings={settings}
       />
     </ToolPageLayout>
   )

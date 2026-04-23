@@ -18,8 +18,9 @@ export function ValidationDot({
   if (!show) return null
 
   return (
-    <div className="flex items-center gap-3 shrink-0">
+    <div className="flex items-center gap-3 shrink-0" role="status" aria-label={valid ? validLabel : invalidLabel}>
       <div
+        aria-hidden="true"
         className={`h-2 w-2 rounded-full ${valid ? "bg-emerald-500" : "bg-destructive"}`}
       />
       <span className="text-xs text-muted-foreground">

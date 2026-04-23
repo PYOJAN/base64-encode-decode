@@ -88,12 +88,19 @@ function HashGeneratorPage() {
     }
     const id = ++computeIdRef.current
     setLoading(true)
-    hashTextSelected(debouncedText, selectedAlgos).then((result) => {
-      if (id === computeIdRef.current) {
-        setHashes(result)
-        setLoading(false)
-      }
-    })
+    hashTextSelected(debouncedText, selectedAlgos)
+      .then((result) => {
+        if (id === computeIdRef.current) {
+          setHashes(result)
+          setLoading(false)
+        }
+      })
+      .catch(() => {
+        if (id === computeIdRef.current) {
+          setHashes(null)
+          setLoading(false)
+        }
+      })
   }, [debouncedText, activeTab, selectedAlgos])
 
   const handleFile = async (file: File) => {

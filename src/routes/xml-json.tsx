@@ -7,10 +7,12 @@ import {
   Toolbar,
   ToolbarTrailing,
   EditorThemePicker,
+  EditorSettingsBar,
   ErrorBanner,
   DualEditorLayout,
 } from "@/components"
-import { useClipboard, useDebounce, useEditorTheme } from "@/hooks"
+import { useClipboard, useDebounce, useEditorTheme, useEditorSettings } from "@/hooks"
+import { toErrorMessage } from "@/lib/utils"
 import { XMLParser, XMLBuilder } from "fast-xml-parser"
 
 export const Route = createFileRoute("/xml-json")({
@@ -23,6 +25,7 @@ function XmlJsonPage() {
   const [error, setError] = useState("")
   const [direction, setDirection] = useState<"json-to-xml" | "xml-to-json">("json-to-xml")
   const { theme, setTheme, setPreviewTheme, effectiveTheme } = useEditorTheme()
+  const { settings, toggleLineNumbers, toggleLineWrapping } = useEditorSettings()
   const { copy } = useClipboard()
 
   const debouncedXml = useDebounce(xml, 400)
@@ -44,7 +47,7 @@ function XmlJsonPage() {
       try {
         const parsed = parser.parse(xmlInput)
         setJsonText(JSON.stringify(parsed, null, 2)); setError("")
-      } catch (e) { setError((e as Error).message); setJsonText("") }
+      } catch (e) { setError(toErrorMessage(e)); setJsonText("") }
     },
     [parser]
   )
@@ -55,7 +58,7 @@ function XmlJsonPage() {
       try {
         const parsed = JSON.parse(jsonInput)
         setXml(builder.build(parsed)); setError("")
-      } catch (e) { setError((e as Error).message); setXml("") }
+      } catch (e) { setError(toErrorMessage(e)); setXml("") }
     },
     [builder]
   )
@@ -97,6 +100,7 @@ function XmlJsonPage() {
               XML
             </Button>
           )}
+          <EditorSettingsBar settings={settings} onToggleLineNumbers={toggleLineNumbers} onToggleLineWrapping={toggleLineWrapping} />
           <EditorThemePicker theme={theme} onThemeChange={setTheme} onPreviewChange={setPreviewTheme} />
         </ToolbarTrailing>
       </Toolbar>
@@ -107,6 +111,7 @@ function XmlJsonPage() {
         left={{ label: "JSON", value: jsonText, onChange: setJsonText, language: "json", placeholder: "Paste JSON here..." }}
         right={{ label: "XML", value: xml, onChange: setXml, language: "xml", placeholder: "Paste XML here..." }}
         theme={effectiveTheme}
+        editorSettings={settings}
       />
     </ToolPageLayout>
   )

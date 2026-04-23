@@ -8,10 +8,11 @@ import {
   ToolbarTrailing,
   CopyButton,
   EditorThemePicker,
+  EditorSettingsBar,
   ErrorBanner,
   DualEditorLayout,
 } from "@/components"
-import { useEditorTheme, useTransform } from "@/hooks"
+import { useEditorTheme, useEditorSettings, useTransform } from "@/hooks"
 
 export const Route = createFileRoute("/xml-formatter")({
   component: XmlFormatterPage,
@@ -53,6 +54,7 @@ function validateXml(xml: string): string | null {
 function XmlFormatterPage() {
   const [input, setInput] = useState("")
   const { theme, setTheme, setPreviewTheme, effectiveTheme } = useEditorTheme()
+  const { settings, toggleLineNumbers, toggleLineWrapping } = useEditorSettings()
 
   const { output, error, setOutput, setError } = useTransform({
     input,
@@ -103,6 +105,7 @@ function XmlFormatterPage() {
         </Button>
         <ToolbarTrailing>
           <CopyButton value={output} />
+          <EditorSettingsBar settings={settings} onToggleLineNumbers={toggleLineNumbers} onToggleLineWrapping={toggleLineWrapping} />
           <EditorThemePicker theme={theme} onThemeChange={setTheme} onPreviewChange={setPreviewTheme} />
         </ToolbarTrailing>
       </Toolbar>
@@ -113,6 +116,7 @@ function XmlFormatterPage() {
         left={{ label: "Input", value: input, onChange: setInput, language: "xml", placeholder: "Paste XML here..." }}
         right={{ label: "Output", value: output, language: "xml", readOnly: true, placeholder: "Formatted output..." }}
         theme={effectiveTheme}
+        editorSettings={settings}
       />
     </ToolPageLayout>
   )

@@ -79,7 +79,7 @@ function NumberBasePage() {
     try {
       parsedValue = parseToBigInt(trimmed, currentBase.radix)
     } catch (e) {
-      error = (e as Error).message
+      error = e instanceof Error ? e.message : String(e)
     }
   }
 

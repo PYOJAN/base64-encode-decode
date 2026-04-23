@@ -9,10 +9,12 @@ import {
   ToolbarTrailing,
   CopyButton,
   EditorThemePicker,
+  EditorSettingsBar,
   ErrorBanner,
   DualEditorLayout,
 } from "@/components"
-import { useEditorTheme, useTransform } from "@/hooks"
+import { useEditorTheme, useEditorSettings, useTransform } from "@/hooks"
+import { toErrorMessage } from "@/lib/utils"
 
 export const Route = createFileRoute("/json-formatter")({
   component: JsonFormatterPage,
@@ -22,6 +24,7 @@ function JsonFormatterPage() {
   const [input, setInput] = useState("")
   const [indent, setIndent] = useState<string>("2")
   const { theme, setTheme, setPreviewTheme, effectiveTheme } = useEditorTheme()
+  const { settings, toggleLineNumbers, toggleLineWrapping } = useEditorSettings()
 
   const getIndent = useCallback(() => {
     if (indent === "tab") return "\t"
@@ -44,7 +47,7 @@ function JsonFormatterPage() {
       setOutput(JSON.stringify(parsed, null, getIndent()))
       setError("")
     } catch (e) {
-      setError((e as Error).message)
+      setError(toErrorMessage(e))
       setOutput("")
     }
   }
@@ -55,7 +58,7 @@ function JsonFormatterPage() {
       setOutput(JSON.stringify(parsed))
       setError("")
     } catch (e) {
-      setError((e as Error).message)
+      setError(toErrorMessage(e))
       setOutput("")
     }
   }
@@ -66,7 +69,7 @@ function JsonFormatterPage() {
       setError("")
       setOutput("// Valid JSON")
     } catch (e) {
-      setError((e as Error).message)
+      setError(toErrorMessage(e))
       setOutput("")
     }
   }
@@ -93,6 +96,7 @@ function JsonFormatterPage() {
         </Button>
         <ToolbarTrailing>
           <CopyButton value={output} show={!!output && output !== "// Valid JSON"} />
+          <EditorSettingsBar settings={settings} onToggleLineNumbers={toggleLineNumbers} onToggleLineWrapping={toggleLineWrapping} />
           <EditorThemePicker theme={theme} onThemeChange={setTheme} onPreviewChange={setPreviewTheme} />
           <Tabs value={indent} onValueChange={setIndent}>
             <TabsList className="h-8">
@@ -110,6 +114,7 @@ function JsonFormatterPage() {
         left={{ label: "Input", value: input, onChange: setInput, language: "json", placeholder: "Paste JSON here..." }}
         right={{ label: "Output", value: output, language: "json", readOnly: true, placeholder: "Formatted output..." }}
         theme={effectiveTheme}
+        editorSettings={settings}
       />
     </ToolPageLayout>
   )

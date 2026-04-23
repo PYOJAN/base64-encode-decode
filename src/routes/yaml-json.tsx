@@ -7,10 +7,12 @@ import {
   Toolbar,
   ToolbarTrailing,
   EditorThemePicker,
+  EditorSettingsBar,
   ErrorBanner,
   DualEditorLayout,
 } from "@/components"
-import { useClipboard, useDebounce, useEditorTheme } from "@/hooks"
+import { useClipboard, useDebounce, useEditorTheme, useEditorSettings } from "@/hooks"
+import { toErrorMessage } from "@/lib/utils"
 import YAML from "yaml"
 
 export const Route = createFileRoute("/yaml-json")({
@@ -23,6 +25,7 @@ function YamlJsonPage() {
   const [error, setError] = useState("")
   const [direction, setDirection] = useState<"yaml-to-json" | "json-to-yaml">("yaml-to-json")
   const { theme, setTheme, setPreviewTheme, effectiveTheme } = useEditorTheme()
+  const { settings, toggleLineNumbers, toggleLineWrapping } = useEditorSettings()
   const { copy } = useClipboard()
 
   const debouncedYaml = useDebounce(yamlText, 400)
@@ -33,7 +36,7 @@ function YamlJsonPage() {
     try {
       const parsed = YAML.parse(input)
       setJsonText(JSON.stringify(parsed, null, 2)); setError("")
-    } catch (e) { setError((e as Error).message); setJsonText("") }
+    } catch (e) { setError(toErrorMessage(e)); setJsonText("") }
   }, [])
 
   const convertJsonToYaml = useCallback((input: string) => {
@@ -41,7 +44,7 @@ function YamlJsonPage() {
     try {
       const parsed = JSON.parse(input)
       setYamlText(YAML.stringify(parsed)); setError("")
-    } catch (e) { setError((e as Error).message); setYamlText("") }
+    } catch (e) { setError(toErrorMessage(e)); setYamlText("") }
   }, [])
 
   useEffect(() => {
@@ -84,6 +87,7 @@ function YamlJsonPage() {
               <span className="hidden sm:inline text-xs">JSON</span>
             </Button>
           )}
+          <EditorSettingsBar settings={settings} onToggleLineNumbers={toggleLineNumbers} onToggleLineWrapping={toggleLineWrapping} />
           <EditorThemePicker theme={theme} onThemeChange={setTheme} onPreviewChange={setPreviewTheme} />
         </ToolbarTrailing>
       </Toolbar>
@@ -94,6 +98,7 @@ function YamlJsonPage() {
         left={{ label: "YAML", value: yamlText, onChange: setYamlText, language: "yaml", placeholder: "Paste YAML here..." }}
         right={{ label: "JSON", value: jsonText, onChange: setJsonText, language: "json", placeholder: "Paste JSON here..." }}
         theme={effectiveTheme}
+        editorSettings={settings}
       />
     </ToolPageLayout>
   )

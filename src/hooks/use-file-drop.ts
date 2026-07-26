@@ -3,9 +3,28 @@ import { useCallback, useState, type DragEvent } from "react"
 interface UseFileDropOptions {
   onFile: (file: File) => void
   accept?: string
+  /** Called when a dropped file fails the `accept` filter. Without it the drop is silent. */
+  onReject?: (file: File) => void
+  /**
+   * Receives every accepted file in one call. When set it replaces `onFile`, so a drop of
+   * five PDFs is handled as one batch instead of silently keeping only the first.
+   */
+  onFiles?: (files: File[]) => void
 }
 
-export function useFileDrop({ onFile, accept }: UseFileDropOptions) {
+function matchesAccept(file: File, accept: string) {
+  return accept
+    .split(",")
+    .map((s) => s.trim())
+    .some(
+      (a) =>
+        file.type === a ||
+        (a.endsWith("/*") && file.type.startsWith(a.replace("/*", "/"))) ||
+        (a.startsWith(".") && file.name.toLowerCase().endsWith(a.toLowerCase()))
+    )
+}
+
+export function useFileDrop({ onFile, accept, onReject, onFiles }: UseFileDropOptions) {
   const [isDragging, setIsDragging] = useState(false)
 
   const onDragOver = useCallback((e: DragEvent) => {
@@ -22,22 +41,23 @@ export function useFileDrop({ onFile, accept }: UseFileDropOptions) {
     (e: DragEvent) => {
       e.preventDefault()
       setIsDragging(false)
-      const file = e.dataTransfer.files[0]
-      if (file) {
-        if (accept) {
-          const accepted = accept.split(",").map((s) => s.trim())
-          const matches = accepted.some(
-            (a) =>
-              file.type === a ||
-              (a.endsWith("/*") && file.type.startsWith(a.replace("/*", "/"))) ||
-              (a.startsWith(".") && file.name.endsWith(a))
-          )
-          if (!matches) return
-        }
-        onFile(file)
-      }
+
+      const dropped = Array.from(e.dataTransfer.files)
+      if (dropped.length === 0) return
+
+      const accepted = accept ? dropped.filter((f) => matchesAccept(f, accept)) : dropped
+      const rejected = accept ? dropped.filter((f) => !matchesAccept(f, accept)) : []
+
+      const [firstRejected] = rejected
+      if (firstRejected) onReject?.(firstRejected)
+
+      const [firstAccepted] = accepted
+      if (!firstAccepted) return
+
+      if (onFiles) onFiles(accepted)
+      else onFile(firstAccepted)
     },
-    [onFile, accept]
+    [onFile, onFiles, accept, onReject]
   )
 
   return { isDragging, onDragOver, onDragLeave, onDrop }

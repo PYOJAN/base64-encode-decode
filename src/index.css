@@ -59,18 +59,38 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+  /* 14px track with a transparent border on the thumb: the thumb still *looks* ~6px
+     because background-clip trims it to the content box, but the whole 14px is
+     grabbable. At the old flat 6px the thumb was nearly impossible to drag. */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 14px;
+    height: 14px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
     background: oklch(0.28 0.006 260);
-    border-radius: 3px;
+    border-radius: 999px;
+    border: 4px solid transparent;
+    background-clip: content-box;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: oklch(0.36 0.006 260);
+    background: oklch(0.42 0.008 260);
+    border-width: 3px;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:active {
+    background: oklch(0.52 0.01 260);
+    border-width: 3px;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  /* Firefox has no thumb-sizing control; `thin` is its closest equivalent. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: oklch(0.28 0.006 260) transparent;
   }
 }

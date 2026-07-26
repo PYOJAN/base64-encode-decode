@@ -5,6 +5,7 @@ import {
   Viewer,
   defaultLayoutPlugin,
   type DefaultLayoutPluginOptions,
+  type LoadError,
   type ToolbarConfig,
   type ToolbarSlots,
   type VerifyKitConfig,
@@ -42,6 +43,8 @@ interface PdfViewerProps {
   onClose?: () => void
   onOpenFile?: (file: File) => void
   viewerOptions?: PdfViewerOptions
+  /** Drop the rounded border so the viewer can sit flush inside a workbench panel. */
+  bare?: boolean
 }
 
 type ToolbarTransform = (slots: ToolbarSlots) => ToolbarSlots
@@ -70,6 +73,7 @@ function PdfViewerContent({
   onClose,
   onOpenFile,
   viewerOptions,
+  bare,
 }: PdfViewerProps) {
   const verification = useVerification()
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -85,6 +89,7 @@ function PdfViewerContent({
     },
     toolbar: viewerOptions?.layout?.toolbar,
     accessibility: viewerOptions?.layout?.accessibility,
+    zoom: viewerOptions?.layout?.zoom,
     toolbarVisibility,
   })
 
@@ -108,11 +113,18 @@ function PdfViewerContent({
     [layoutKey, onDownload, onOpenFile, toolbarVisibility, viewerOptions?.layout]
   )
 
+  // `load` is rebuilt once the WASM verifier finishes booting, so keying this
+  // effect on it would verify the same document twice. Since SDK 0.6.0 `load()`
+  // waits for WASM by itself, leaving the input as the only trigger needed.
+  const verificationRef = useRef(verification)
+  verificationRef.current = verification
+
   useEffect(() => {
     let cancelled = false
 
     const loadPdf = async () => {
-      verification.reset()
+      const { load, reset } = verificationRef.current
+      reset()
       setLoadError(null)
       setIsPreparing(true)
 
@@ -127,7 +139,7 @@ function PdfViewerContent({
         const input = await resolvePdfInput(trimmed)
         if (cancelled) return
 
-        await verification.load(input, toPdfFileName(title))
+        await load(input, toPdfFileName(title))
       } catch (error) {
         if (cancelled) return
         setLoadError(error instanceof Error ? error.message : "Failed to load PDF.")
@@ -143,7 +155,7 @@ function PdfViewerContent({
     return () => {
       cancelled = true
     }
-  }, [data, title, verification.load, verification.reset])
+  }, [data, title])
 
   useEffect(() => {
     const store = viewerRef.current?.getStore()
@@ -154,20 +166,15 @@ function PdfViewerContent({
     store.update({ sigPanelOpen: viewerOptions.signaturePanelOpen })
   }, [verification.signatures, viewerOptions?.signaturePanelOpen])
 
-  const errorMessage =
-    loadError ??
-    (verification.error instanceof Error
-      ? verification.error.message
-      : verification.error
-        ? String(verification.error)
-        : null)
+  const errorMessage = loadError ?? formatLoadError(verification.error)
   const isReady = Boolean(verification.fileBuffer)
   const isLoading = isPreparing || verification.isLoading
 
   return (
     <div
       className={cn(
-        "relative flex h-full min-h-0 overflow-hidden rounded-lg border bg-background",
+        "relative flex h-full min-h-0 overflow-hidden bg-background",
+        bare ? "border-0" : "rounded-lg border",
         className
       )}
     >
@@ -276,6 +283,13 @@ function isUrlLike(value: string) {
 function toPdfFileName(title?: string) {
   if (!title) return "document.pdf"
   return title.toLowerCase().endsWith(".pdf") ? title : `${title}.pdf`
+}
+
+// `useVerification().error` is a plain LoadError ({ name, message }), not an Error
+// instance, so it has to be read field-by-field rather than stringified.
+function formatLoadError(error: LoadError | null) {
+  if (!error) return null
+  return error.message.trim() || `PDF could not be verified (${error.name}).`
 }
 
 function buildVerifyKitConfig(options?: PdfViewerOptions): VerifyKitConfig {

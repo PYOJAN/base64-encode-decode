@@ -9,193 +9,43 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as YamlJsonRouteImport } from './routes/yaml-json'
-import { Route as YamlFormatterRouteImport } from './routes/yaml-formatter'
-import { Route as XmlJsonRouteImport } from './routes/xml-json'
-import { Route as XmlFormatterRouteImport } from './routes/xml-formatter'
-import { Route as UuidGeneratorRouteImport } from './routes/uuid-generator'
-import { Route as UrlEncoderRouteImport } from './routes/url-encoder'
-import { Route as TimestampRouteImport } from './routes/timestamp'
-import { Route as RegexTesterRouteImport } from './routes/regex-tester'
-import { Route as Pkcs7ViewerRouteImport } from './routes/pkcs7-viewer'
-import { Route as PfxConverterRouteImport } from './routes/pfx-converter'
-import { Route as PemConverterRouteImport } from './routes/pem-converter'
-import { Route as PdfVerificationRouteImport } from './routes/pdf-verification'
-import { Route as PdfToBase64RouteImport } from './routes/pdf-to-base64'
-import { Route as PdfGeneratorRouteImport } from './routes/pdf-generator'
-import { Route as NumberBaseRouteImport } from './routes/number-base'
-import { Route as JwtDecoderRouteImport } from './routes/jwt-decoder'
-import { Route as JsonFormatterRouteImport } from './routes/json-formatter'
-import { Route as HashGeneratorRouteImport } from './routes/hash-generator'
-import { Route as FileToBase64RouteImport } from './routes/file-to-base64'
-import { Route as DiffViewerRouteImport } from './routes/diff-viewer'
-import { Route as CsvJsonRouteImport } from './routes/csv-json'
-import { Route as CsrSignerRouteImport } from './routes/csr-signer'
-import { Route as CsrGeneratorRouteImport } from './routes/csr-generator'
-import { Route as CsrDecoderRouteImport } from './routes/csr-decoder'
-import { Route as CrlParserRouteImport } from './routes/crl-parser'
-import { Route as ColorConverterRouteImport } from './routes/color-converter'
-import { Route as ChainValidatorRouteImport } from './routes/chain-validator'
-import { Route as CertificateDecoderRouteImport } from './routes/certificate-decoder'
-import { Route as Base64ToTextRouteImport } from './routes/base64-to-text'
-import { Route as Base64ToPdfRouteImport } from './routes/base64-to-pdf'
-import { Route as Base64ToFileRouteImport } from './routes/base64-to-file'
-import { Route as Asn1DecoderRouteImport } from './routes/asn1-decoder'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as Asn1DecoderRouteImport } from './routes/asn1-decoder'
+import { Route as Base64ToFileRouteImport } from './routes/base64-to-file'
+import { Route as Base64ToPdfRouteImport } from './routes/base64-to-pdf'
+import { Route as Base64ToTextRouteImport } from './routes/base64-to-text'
+import { Route as CertificateDecoderRouteImport } from './routes/certificate-decoder'
+import { Route as ChainValidatorRouteImport } from './routes/chain-validator'
+import { Route as ColorConverterRouteImport } from './routes/color-converter'
+import { Route as CrlParserRouteImport } from './routes/crl-parser'
+import { Route as CsrDecoderRouteImport } from './routes/csr-decoder'
+import { Route as CsrGeneratorRouteImport } from './routes/csr-generator'
+import { Route as CsrSignerRouteImport } from './routes/csr-signer'
+import { Route as CsvJsonRouteImport } from './routes/csv-json'
+import { Route as DiffViewerRouteImport } from './routes/diff-viewer'
+import { Route as FileToBase64RouteImport } from './routes/file-to-base64'
+import { Route as HashGeneratorRouteImport } from './routes/hash-generator'
+import { Route as JsonFormatterRouteImport } from './routes/json-formatter'
+import { Route as JwtDecoderRouteImport } from './routes/jwt-decoder'
+import { Route as NumberBaseRouteImport } from './routes/number-base'
+import { Route as PdfGeneratorRouteImport } from './routes/pdf-generator'
+import { Route as PdfToBase64RouteImport } from './routes/pdf-to-base64'
+import { Route as PdfVerificationRouteImport } from './routes/pdf-verification'
+import { Route as PemConverterRouteImport } from './routes/pem-converter'
+import { Route as PfxConverterRouteImport } from './routes/pfx-converter'
+import { Route as Pkcs7ViewerRouteImport } from './routes/pkcs7-viewer'
+import { Route as RegexTesterRouteImport } from './routes/regex-tester'
+import { Route as TimestampRouteImport } from './routes/timestamp'
+import { Route as UrlEncoderRouteImport } from './routes/url-encoder'
+import { Route as UuidGeneratorRouteImport } from './routes/uuid-generator'
+import { Route as XmlFormatterRouteImport } from './routes/xml-formatter'
+import { Route as XmlJsonRouteImport } from './routes/xml-json'
+import { Route as YamlFormatterRouteImport } from './routes/yaml-formatter'
+import { Route as YamlJsonRouteImport } from './routes/yaml-json'
 
-const YamlJsonRoute = YamlJsonRouteImport.update({
-  id: '/yaml-json',
-  path: '/yaml-json',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const YamlFormatterRoute = YamlFormatterRouteImport.update({
-  id: '/yaml-formatter',
-  path: '/yaml-formatter',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const XmlJsonRoute = XmlJsonRouteImport.update({
-  id: '/xml-json',
-  path: '/xml-json',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const XmlFormatterRoute = XmlFormatterRouteImport.update({
-  id: '/xml-formatter',
-  path: '/xml-formatter',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const UuidGeneratorRoute = UuidGeneratorRouteImport.update({
-  id: '/uuid-generator',
-  path: '/uuid-generator',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const UrlEncoderRoute = UrlEncoderRouteImport.update({
-  id: '/url-encoder',
-  path: '/url-encoder',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TimestampRoute = TimestampRouteImport.update({
-  id: '/timestamp',
-  path: '/timestamp',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RegexTesterRoute = RegexTesterRouteImport.update({
-  id: '/regex-tester',
-  path: '/regex-tester',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Pkcs7ViewerRoute = Pkcs7ViewerRouteImport.update({
-  id: '/pkcs7-viewer',
-  path: '/pkcs7-viewer',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PfxConverterRoute = PfxConverterRouteImport.update({
-  id: '/pfx-converter',
-  path: '/pfx-converter',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PemConverterRoute = PemConverterRouteImport.update({
-  id: '/pem-converter',
-  path: '/pem-converter',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PdfVerificationRoute = PdfVerificationRouteImport.update({
-  id: '/pdf-verification',
-  path: '/pdf-verification',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PdfToBase64Route = PdfToBase64RouteImport.update({
-  id: '/pdf-to-base64',
-  path: '/pdf-to-base64',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PdfGeneratorRoute = PdfGeneratorRouteImport.update({
-  id: '/pdf-generator',
-  path: '/pdf-generator',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NumberBaseRoute = NumberBaseRouteImport.update({
-  id: '/number-base',
-  path: '/number-base',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JwtDecoderRoute = JwtDecoderRouteImport.update({
-  id: '/jwt-decoder',
-  path: '/jwt-decoder',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JsonFormatterRoute = JsonFormatterRouteImport.update({
-  id: '/json-formatter',
-  path: '/json-formatter',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HashGeneratorRoute = HashGeneratorRouteImport.update({
-  id: '/hash-generator',
-  path: '/hash-generator',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FileToBase64Route = FileToBase64RouteImport.update({
-  id: '/file-to-base64',
-  path: '/file-to-base64',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DiffViewerRoute = DiffViewerRouteImport.update({
-  id: '/diff-viewer',
-  path: '/diff-viewer',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CsvJsonRoute = CsvJsonRouteImport.update({
-  id: '/csv-json',
-  path: '/csv-json',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CsrSignerRoute = CsrSignerRouteImport.update({
-  id: '/csr-signer',
-  path: '/csr-signer',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CsrGeneratorRoute = CsrGeneratorRouteImport.update({
-  id: '/csr-generator',
-  path: '/csr-generator',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CsrDecoderRoute = CsrDecoderRouteImport.update({
-  id: '/csr-decoder',
-  path: '/csr-decoder',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CrlParserRoute = CrlParserRouteImport.update({
-  id: '/crl-parser',
-  path: '/crl-parser',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ColorConverterRoute = ColorConverterRouteImport.update({
-  id: '/color-converter',
-  path: '/color-converter',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChainValidatorRoute = ChainValidatorRouteImport.update({
-  id: '/chain-validator',
-  path: '/chain-validator',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CertificateDecoderRoute = CertificateDecoderRouteImport.update({
-  id: '/certificate-decoder',
-  path: '/certificate-decoder',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Base64ToTextRoute = Base64ToTextRouteImport.update({
-  id: '/base64-to-text',
-  path: '/base64-to-text',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Base64ToPdfRoute = Base64ToPdfRouteImport.update({
-  id: '/base64-to-pdf',
-  path: '/base64-to-pdf',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Base64ToFileRoute = Base64ToFileRouteImport.update({
-  id: '/base64-to-file',
-  path: '/base64-to-file',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Asn1DecoderRoute = Asn1DecoderRouteImport.update({
@@ -203,9 +53,159 @@ const Asn1DecoderRoute = Asn1DecoderRouteImport.update({
   path: '/asn1-decoder',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const Base64ToFileRoute = Base64ToFileRouteImport.update({
+  id: '/base64-to-file',
+  path: '/base64-to-file',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Base64ToPdfRoute = Base64ToPdfRouteImport.update({
+  id: '/base64-to-pdf',
+  path: '/base64-to-pdf',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Base64ToTextRoute = Base64ToTextRouteImport.update({
+  id: '/base64-to-text',
+  path: '/base64-to-text',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CertificateDecoderRoute = CertificateDecoderRouteImport.update({
+  id: '/certificate-decoder',
+  path: '/certificate-decoder',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChainValidatorRoute = ChainValidatorRouteImport.update({
+  id: '/chain-validator',
+  path: '/chain-validator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ColorConverterRoute = ColorConverterRouteImport.update({
+  id: '/color-converter',
+  path: '/color-converter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CrlParserRoute = CrlParserRouteImport.update({
+  id: '/crl-parser',
+  path: '/crl-parser',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CsrDecoderRoute = CsrDecoderRouteImport.update({
+  id: '/csr-decoder',
+  path: '/csr-decoder',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CsrGeneratorRoute = CsrGeneratorRouteImport.update({
+  id: '/csr-generator',
+  path: '/csr-generator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CsrSignerRoute = CsrSignerRouteImport.update({
+  id: '/csr-signer',
+  path: '/csr-signer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CsvJsonRoute = CsvJsonRouteImport.update({
+  id: '/csv-json',
+  path: '/csv-json',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiffViewerRoute = DiffViewerRouteImport.update({
+  id: '/diff-viewer',
+  path: '/diff-viewer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FileToBase64Route = FileToBase64RouteImport.update({
+  id: '/file-to-base64',
+  path: '/file-to-base64',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HashGeneratorRoute = HashGeneratorRouteImport.update({
+  id: '/hash-generator',
+  path: '/hash-generator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JsonFormatterRoute = JsonFormatterRouteImport.update({
+  id: '/json-formatter',
+  path: '/json-formatter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JwtDecoderRoute = JwtDecoderRouteImport.update({
+  id: '/jwt-decoder',
+  path: '/jwt-decoder',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NumberBaseRoute = NumberBaseRouteImport.update({
+  id: '/number-base',
+  path: '/number-base',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PdfGeneratorRoute = PdfGeneratorRouteImport.update({
+  id: '/pdf-generator',
+  path: '/pdf-generator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PdfToBase64Route = PdfToBase64RouteImport.update({
+  id: '/pdf-to-base64',
+  path: '/pdf-to-base64',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PdfVerificationRoute = PdfVerificationRouteImport.update({
+  id: '/pdf-verification',
+  path: '/pdf-verification',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PemConverterRoute = PemConverterRouteImport.update({
+  id: '/pem-converter',
+  path: '/pem-converter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PfxConverterRoute = PfxConverterRouteImport.update({
+  id: '/pfx-converter',
+  path: '/pfx-converter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Pkcs7ViewerRoute = Pkcs7ViewerRouteImport.update({
+  id: '/pkcs7-viewer',
+  path: '/pkcs7-viewer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegexTesterRoute = RegexTesterRouteImport.update({
+  id: '/regex-tester',
+  path: '/regex-tester',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TimestampRoute = TimestampRouteImport.update({
+  id: '/timestamp',
+  path: '/timestamp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UrlEncoderRoute = UrlEncoderRouteImport.update({
+  id: '/url-encoder',
+  path: '/url-encoder',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UuidGeneratorRoute = UuidGeneratorRouteImport.update({
+  id: '/uuid-generator',
+  path: '/uuid-generator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const XmlFormatterRoute = XmlFormatterRouteImport.update({
+  id: '/xml-formatter',
+  path: '/xml-formatter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const XmlJsonRoute = XmlJsonRouteImport.update({
+  id: '/xml-json',
+  path: '/xml-json',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const YamlFormatterRoute = YamlFormatterRouteImport.update({
+  id: '/yaml-formatter',
+  path: '/yaml-formatter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const YamlJsonRoute = YamlJsonRouteImport.update({
+  id: '/yaml-json',
+  path: '/yaml-json',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -461,221 +461,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/yaml-json': {
-      id: '/yaml-json'
-      path: '/yaml-json'
-      fullPath: '/yaml-json'
-      preLoaderRoute: typeof YamlJsonRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/yaml-formatter': {
-      id: '/yaml-formatter'
-      path: '/yaml-formatter'
-      fullPath: '/yaml-formatter'
-      preLoaderRoute: typeof YamlFormatterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/xml-json': {
-      id: '/xml-json'
-      path: '/xml-json'
-      fullPath: '/xml-json'
-      preLoaderRoute: typeof XmlJsonRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/xml-formatter': {
-      id: '/xml-formatter'
-      path: '/xml-formatter'
-      fullPath: '/xml-formatter'
-      preLoaderRoute: typeof XmlFormatterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/uuid-generator': {
-      id: '/uuid-generator'
-      path: '/uuid-generator'
-      fullPath: '/uuid-generator'
-      preLoaderRoute: typeof UuidGeneratorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/url-encoder': {
-      id: '/url-encoder'
-      path: '/url-encoder'
-      fullPath: '/url-encoder'
-      preLoaderRoute: typeof UrlEncoderRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/timestamp': {
-      id: '/timestamp'
-      path: '/timestamp'
-      fullPath: '/timestamp'
-      preLoaderRoute: typeof TimestampRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/regex-tester': {
-      id: '/regex-tester'
-      path: '/regex-tester'
-      fullPath: '/regex-tester'
-      preLoaderRoute: typeof RegexTesterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pkcs7-viewer': {
-      id: '/pkcs7-viewer'
-      path: '/pkcs7-viewer'
-      fullPath: '/pkcs7-viewer'
-      preLoaderRoute: typeof Pkcs7ViewerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pfx-converter': {
-      id: '/pfx-converter'
-      path: '/pfx-converter'
-      fullPath: '/pfx-converter'
-      preLoaderRoute: typeof PfxConverterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pem-converter': {
-      id: '/pem-converter'
-      path: '/pem-converter'
-      fullPath: '/pem-converter'
-      preLoaderRoute: typeof PemConverterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pdf-verification': {
-      id: '/pdf-verification'
-      path: '/pdf-verification'
-      fullPath: '/pdf-verification'
-      preLoaderRoute: typeof PdfVerificationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pdf-to-base64': {
-      id: '/pdf-to-base64'
-      path: '/pdf-to-base64'
-      fullPath: '/pdf-to-base64'
-      preLoaderRoute: typeof PdfToBase64RouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pdf-generator': {
-      id: '/pdf-generator'
-      path: '/pdf-generator'
-      fullPath: '/pdf-generator'
-      preLoaderRoute: typeof PdfGeneratorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/number-base': {
-      id: '/number-base'
-      path: '/number-base'
-      fullPath: '/number-base'
-      preLoaderRoute: typeof NumberBaseRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/jwt-decoder': {
-      id: '/jwt-decoder'
-      path: '/jwt-decoder'
-      fullPath: '/jwt-decoder'
-      preLoaderRoute: typeof JwtDecoderRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/json-formatter': {
-      id: '/json-formatter'
-      path: '/json-formatter'
-      fullPath: '/json-formatter'
-      preLoaderRoute: typeof JsonFormatterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/hash-generator': {
-      id: '/hash-generator'
-      path: '/hash-generator'
-      fullPath: '/hash-generator'
-      preLoaderRoute: typeof HashGeneratorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/file-to-base64': {
-      id: '/file-to-base64'
-      path: '/file-to-base64'
-      fullPath: '/file-to-base64'
-      preLoaderRoute: typeof FileToBase64RouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/diff-viewer': {
-      id: '/diff-viewer'
-      path: '/diff-viewer'
-      fullPath: '/diff-viewer'
-      preLoaderRoute: typeof DiffViewerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/csv-json': {
-      id: '/csv-json'
-      path: '/csv-json'
-      fullPath: '/csv-json'
-      preLoaderRoute: typeof CsvJsonRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/csr-signer': {
-      id: '/csr-signer'
-      path: '/csr-signer'
-      fullPath: '/csr-signer'
-      preLoaderRoute: typeof CsrSignerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/csr-generator': {
-      id: '/csr-generator'
-      path: '/csr-generator'
-      fullPath: '/csr-generator'
-      preLoaderRoute: typeof CsrGeneratorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/csr-decoder': {
-      id: '/csr-decoder'
-      path: '/csr-decoder'
-      fullPath: '/csr-decoder'
-      preLoaderRoute: typeof CsrDecoderRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/crl-parser': {
-      id: '/crl-parser'
-      path: '/crl-parser'
-      fullPath: '/crl-parser'
-      preLoaderRoute: typeof CrlParserRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/color-converter': {
-      id: '/color-converter'
-      path: '/color-converter'
-      fullPath: '/color-converter'
-      preLoaderRoute: typeof ColorConverterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/chain-validator': {
-      id: '/chain-validator'
-      path: '/chain-validator'
-      fullPath: '/chain-validator'
-      preLoaderRoute: typeof ChainValidatorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/certificate-decoder': {
-      id: '/certificate-decoder'
-      path: '/certificate-decoder'
-      fullPath: '/certificate-decoder'
-      preLoaderRoute: typeof CertificateDecoderRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/base64-to-text': {
-      id: '/base64-to-text'
-      path: '/base64-to-text'
-      fullPath: '/base64-to-text'
-      preLoaderRoute: typeof Base64ToTextRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/base64-to-pdf': {
-      id: '/base64-to-pdf'
-      path: '/base64-to-pdf'
-      fullPath: '/base64-to-pdf'
-      preLoaderRoute: typeof Base64ToPdfRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/base64-to-file': {
-      id: '/base64-to-file'
-      path: '/base64-to-file'
-      fullPath: '/base64-to-file'
-      preLoaderRoute: typeof Base64ToFileRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/asn1-decoder': {
@@ -685,11 +475,221 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Asn1DecoderRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/base64-to-file': {
+      id: '/base64-to-file'
+      path: '/base64-to-file'
+      fullPath: '/base64-to-file'
+      preLoaderRoute: typeof Base64ToFileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/base64-to-pdf': {
+      id: '/base64-to-pdf'
+      path: '/base64-to-pdf'
+      fullPath: '/base64-to-pdf'
+      preLoaderRoute: typeof Base64ToPdfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/base64-to-text': {
+      id: '/base64-to-text'
+      path: '/base64-to-text'
+      fullPath: '/base64-to-text'
+      preLoaderRoute: typeof Base64ToTextRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/certificate-decoder': {
+      id: '/certificate-decoder'
+      path: '/certificate-decoder'
+      fullPath: '/certificate-decoder'
+      preLoaderRoute: typeof CertificateDecoderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chain-validator': {
+      id: '/chain-validator'
+      path: '/chain-validator'
+      fullPath: '/chain-validator'
+      preLoaderRoute: typeof ChainValidatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/color-converter': {
+      id: '/color-converter'
+      path: '/color-converter'
+      fullPath: '/color-converter'
+      preLoaderRoute: typeof ColorConverterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crl-parser': {
+      id: '/crl-parser'
+      path: '/crl-parser'
+      fullPath: '/crl-parser'
+      preLoaderRoute: typeof CrlParserRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/csr-decoder': {
+      id: '/csr-decoder'
+      path: '/csr-decoder'
+      fullPath: '/csr-decoder'
+      preLoaderRoute: typeof CsrDecoderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/csr-generator': {
+      id: '/csr-generator'
+      path: '/csr-generator'
+      fullPath: '/csr-generator'
+      preLoaderRoute: typeof CsrGeneratorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/csr-signer': {
+      id: '/csr-signer'
+      path: '/csr-signer'
+      fullPath: '/csr-signer'
+      preLoaderRoute: typeof CsrSignerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/csv-json': {
+      id: '/csv-json'
+      path: '/csv-json'
+      fullPath: '/csv-json'
+      preLoaderRoute: typeof CsvJsonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/diff-viewer': {
+      id: '/diff-viewer'
+      path: '/diff-viewer'
+      fullPath: '/diff-viewer'
+      preLoaderRoute: typeof DiffViewerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/file-to-base64': {
+      id: '/file-to-base64'
+      path: '/file-to-base64'
+      fullPath: '/file-to-base64'
+      preLoaderRoute: typeof FileToBase64RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hash-generator': {
+      id: '/hash-generator'
+      path: '/hash-generator'
+      fullPath: '/hash-generator'
+      preLoaderRoute: typeof HashGeneratorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/json-formatter': {
+      id: '/json-formatter'
+      path: '/json-formatter'
+      fullPath: '/json-formatter'
+      preLoaderRoute: typeof JsonFormatterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/jwt-decoder': {
+      id: '/jwt-decoder'
+      path: '/jwt-decoder'
+      fullPath: '/jwt-decoder'
+      preLoaderRoute: typeof JwtDecoderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/number-base': {
+      id: '/number-base'
+      path: '/number-base'
+      fullPath: '/number-base'
+      preLoaderRoute: typeof NumberBaseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pdf-generator': {
+      id: '/pdf-generator'
+      path: '/pdf-generator'
+      fullPath: '/pdf-generator'
+      preLoaderRoute: typeof PdfGeneratorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pdf-to-base64': {
+      id: '/pdf-to-base64'
+      path: '/pdf-to-base64'
+      fullPath: '/pdf-to-base64'
+      preLoaderRoute: typeof PdfToBase64RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pdf-verification': {
+      id: '/pdf-verification'
+      path: '/pdf-verification'
+      fullPath: '/pdf-verification'
+      preLoaderRoute: typeof PdfVerificationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pem-converter': {
+      id: '/pem-converter'
+      path: '/pem-converter'
+      fullPath: '/pem-converter'
+      preLoaderRoute: typeof PemConverterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pfx-converter': {
+      id: '/pfx-converter'
+      path: '/pfx-converter'
+      fullPath: '/pfx-converter'
+      preLoaderRoute: typeof PfxConverterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pkcs7-viewer': {
+      id: '/pkcs7-viewer'
+      path: '/pkcs7-viewer'
+      fullPath: '/pkcs7-viewer'
+      preLoaderRoute: typeof Pkcs7ViewerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/regex-tester': {
+      id: '/regex-tester'
+      path: '/regex-tester'
+      fullPath: '/regex-tester'
+      preLoaderRoute: typeof RegexTesterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/timestamp': {
+      id: '/timestamp'
+      path: '/timestamp'
+      fullPath: '/timestamp'
+      preLoaderRoute: typeof TimestampRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/url-encoder': {
+      id: '/url-encoder'
+      path: '/url-encoder'
+      fullPath: '/url-encoder'
+      preLoaderRoute: typeof UrlEncoderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/uuid-generator': {
+      id: '/uuid-generator'
+      path: '/uuid-generator'
+      fullPath: '/uuid-generator'
+      preLoaderRoute: typeof UuidGeneratorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/xml-formatter': {
+      id: '/xml-formatter'
+      path: '/xml-formatter'
+      fullPath: '/xml-formatter'
+      preLoaderRoute: typeof XmlFormatterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/xml-json': {
+      id: '/xml-json'
+      path: '/xml-json'
+      fullPath: '/xml-json'
+      preLoaderRoute: typeof XmlJsonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/yaml-formatter': {
+      id: '/yaml-formatter'
+      path: '/yaml-formatter'
+      fullPath: '/yaml-formatter'
+      preLoaderRoute: typeof YamlFormatterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/yaml-json': {
+      id: '/yaml-json'
+      path: '/yaml-json'
+      fullPath: '/yaml-json'
+      preLoaderRoute: typeof YamlJsonRouteImport
       parentRoute: typeof rootRouteImport
     }
   }

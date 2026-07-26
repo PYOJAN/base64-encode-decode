@@ -8,6 +8,7 @@ import {
   Image as ImageIcon,
   Loader2,
   Minus,
+  MoreHorizontal,
   Plus,
   Save,
   Square,
@@ -16,11 +17,17 @@ import {
 } from "lucide-react"
 import { jsPDF } from "jspdf"
 import { toast } from "sonner"
-import { ToolPageLayout } from "@/components"
+import { ResizableSplit, WorkbenchLayout } from "@/components"
 import { PdfViewer } from "@/components/pdf-viewer"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Dialog,
   DialogContent,
@@ -511,6 +518,7 @@ function PdfGeneratorPage() {
         imageName: file.name,
       })
     }
+    reader.onerror = () => toast.error(`Could not read ${file.name}`)
     reader.readAsDataURL(file)
   }
 
@@ -710,49 +718,110 @@ function PdfGeneratorPage() {
   }
 
   return (
-    <ToolPageLayout
-      icon={FilePlus}
+    <WorkbenchLayout
       title="Live PDF Generator"
-      description="Drag, place, and edit elements directly on the live PDF canvas. Right-click for quick element controls."
-      badge="Canvas PDF"
-    >
-      <div className="grid h-full min-h-0 grid-cols-1 gap-4 xl:grid-cols-[360px_1fr]">
-        <Card className="min-h-0 overflow-hidden">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">Controls</CardTitle>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-[10px]">P {activePage}/{totalPages}</Badge>
-                {pdfBlob && <Badge variant="secondary" className="text-[10px] font-mono">{formatBytes(pdfBlob.size)}</Badge>}
-              </div>
-            </div>
-          </CardHeader>
+      status={
+        <>
+          <div className="flex shrink-0 items-center gap-2">
+            <FilePlus className="h-4 w-4 text-primary" />
+            <span className="text-xs font-medium">Live PDF Generator</span>
+          </div>
+          <span className="hidden h-4 w-px shrink-0 bg-border sm:block" />
+          <Badge variant="outline" className="shrink-0 text-[10px]">
+            Page {activePage}/{totalPages}
+          </Badge>
+          {pdfBlob && (
+            <Badge
+              variant="secondary"
+              className="hidden shrink-0 font-mono text-[10px] sm:inline-flex"
+            >
+              {formatBytes(pdfBlob.size)}
+            </Badge>
+          )}
+        </>
+      }
+      actions={
+        <>
+          <Button
+            size="sm"
+            className="h-8 text-xs"
+            onClick={() => generatePdf(true)}
+            disabled={generating}
+          >
+            {generating ? (
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Eye className="mr-1.5 h-3.5 w-3.5" />
+            )}
+            Preview
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs"
+            onClick={downloadPdf}
+            disabled={!pdfBlob}
+          >
+            <Download className="mr-1.5 h-3.5 w-3.5" />
+            Download
+          </Button>
 
-          <CardContent className="h-[calc(100%-4rem)] overflow-auto">
-            <div className="flex flex-wrap gap-2 pb-3">
-              <Button size="sm" onClick={() => generatePdf(true)} disabled={generating}>
-                {generating ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Eye className="mr-1.5 h-4 w-4" />} Preview
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="More actions">
+                <MoreHorizontal className="h-4 w-4" />
               </Button>
-              <Button size="sm" variant="outline" onClick={downloadPdf} disabled={!pdfBlob}><Download className="mr-1.5 h-4 w-4" />Download</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={addPage}>
+                <Plus className="mr-2 h-3.5 w-3.5" />
+                Add page
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={removePage} disabled={totalPages === 1}>
+                <Trash2 className="mr-2 h-3.5 w-3.5" />
+                Remove page
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={exportProject}>
+                <Save className="mr-2 h-3.5 w-3.5" />
+                Export project
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => importInputRef.current?.click()}>
+                <FileUp className="mr-2 h-3.5 w-3.5" />
+                Import project
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) importProject(file)
+              e.target.value = ""
+            }}
+          />
+        </>
+      }
+    >
+      <ResizableSplit
+        storageKey="pdf-generator:split"
+        initial={28}
+        min={18}
+        max={55}
+        sideBySideFrom={1280}
+        start={
+          <div className="flex h-full min-h-0 flex-col">
+            <div className="shrink-0 border-b px-3 py-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Controls
+              </span>
             </div>
 
-            <div className="flex flex-wrap gap-2 pb-3">
-              <Button size="sm" variant="outline" onClick={addPage}><Plus className="mr-1.5 h-4 w-4" />Page</Button>
-              <Button size="sm" variant="outline" onClick={removePage} disabled={totalPages === 1}><Trash2 className="mr-1.5 h-4 w-4" />Remove Page</Button>
-              <Button size="sm" variant="outline" onClick={exportProject}><Save className="mr-1.5 h-4 w-4" />Export</Button>
-              <Button size="sm" variant="outline" onClick={() => importInputRef.current?.click()}><FileUp className="mr-1.5 h-4 w-4" />Import</Button>
-              <input
-                ref={importInputRef}
-                type="file"
-                accept="application/json"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) importProject(file)
-                  e.target.value = ""
-                }}
-              />
-            </div>
+            <div className="min-h-0 flex-1 overflow-auto p-3">
 
             <Tabs value={leftTab} onValueChange={setLeftTab}>
               <TabsList className="grid w-full grid-cols-3">
@@ -888,136 +957,138 @@ function PdfGeneratorPage() {
                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={settings.showGuides} onChange={(e) => updateSettings("showGuides", e.target.checked)} /> Show margin guides</label>
               </TabsContent>
             </Tabs>
-          </CardContent>
-        </Card>
-
-        <Card className="min-h-0 overflow-hidden">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between gap-2">
-              <CardTitle className="text-sm">Live Canvas</CardTitle>
+            </div>
+          </div>
+        }
+        end={
+          <div className="flex h-full min-h-0 flex-col">
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Live Canvas
+              </span>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => setActivePage((p) => Math.max(1, p - 1))} disabled={activePage <= 1}>Prev</Button>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setActivePage((p) => Math.max(1, p - 1))} disabled={activePage <= 1}>Prev</Button>
                 <Badge variant="outline" className="text-[10px]">Page {activePage} of {totalPages}</Badge>
-                <Button variant="outline" size="sm" onClick={() => setActivePage((p) => Math.min(totalPages, p + 1))} disabled={activePage >= totalPages}>Next</Button>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setActivePage((p) => Math.min(totalPages, p + 1))} disabled={activePage >= totalPages}>Next</Button>
               </div>
             </div>
-          </CardHeader>
 
-          <CardContent className="h-[calc(100%-4rem)] overflow-auto bg-muted/20">
-            <div className="flex min-h-full items-start justify-center py-4">
-              <div
-                ref={canvasRef}
-                className="relative select-none shadow-xl"
-                style={{
-                  width: pageSizePx.w,
-                  minHeight: pageSizePx.h,
-                  backgroundColor: settings.background,
-                }}
-                onMouseDown={() => setSelectedId(null)}
-                onContextMenu={onCanvasContextMenu}
-              >
+            <div className="min-h-0 flex-1 overflow-auto bg-muted/20">
+              <div className="flex min-h-full items-start justify-center py-4">
                 <div
-                  className={cn(
-                    "absolute",
-                    settings.showGuides ? "border border-dashed border-slate-300" : "border border-transparent"
-                  )}
+                  ref={canvasRef}
+                  className="relative select-none shadow-xl"
                   style={{
-                    left: contentAreaPx.left,
-                    top: contentAreaPx.top,
-                    width: contentAreaPx.width,
-                    height: contentAreaPx.height,
+                    width: pageSizePx.w,
+                    minHeight: pageSizePx.h,
+                    backgroundColor: settings.background,
                   }}
+                  onMouseDown={() => setSelectedId(null)}
+                  onContextMenu={onCanvasContextMenu}
                 >
-                  {pageElements.map((item) => {
-                    const isSelected = item.id === selectedId
-                    const isText = item.type === "heading" || item.type === "text"
+                  <div
+                    className={cn(
+                      "absolute",
+                      settings.showGuides ? "border border-dashed border-slate-300" : "border border-transparent"
+                    )}
+                    style={{
+                      left: contentAreaPx.left,
+                      top: contentAreaPx.top,
+                      width: contentAreaPx.width,
+                      height: contentAreaPx.height,
+                    }}
+                  >
+                    {pageElements.map((item) => {
+                      const isSelected = item.id === selectedId
+                      const isText = item.type === "heading" || item.type === "text"
 
-                    return (
-                      <div
-                        key={item.id}
-                        data-element-id={item.id}
-                        className={cn(
-                          "absolute",
-                          isSelected && "ring-2 ring-sky-400"
-                        )}
-                        style={{
-                          left: item.x,
-                          top: item.y,
-                          width: item.w,
-                          height: item.h,
-                          zIndex: item.z,
-                          cursor: "move",
-                        }}
-                        onMouseDown={(e) => onElementMouseDown(e, item.id)}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setSelectedId(item.id)
-                        }}
-                      >
-                        {item.type === "divider" && (
-                          <div style={{ height: 2, marginTop: item.h / 2 }} className="w-full" >
-                            <div className="h-[2px] w-full" style={{ backgroundColor: item.borderColor }} />
-                          </div>
-                        )}
+                      return (
+                        <div
+                          key={item.id}
+                          data-element-id={item.id}
+                          className={cn(
+                            "absolute",
+                            isSelected && "ring-2 ring-sky-400"
+                          )}
+                          style={{
+                            left: item.x,
+                            top: item.y,
+                            width: item.w,
+                            height: item.h,
+                            zIndex: item.z,
+                            cursor: "move",
+                          }}
+                          onMouseDown={(e) => onElementMouseDown(e, item.id)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedId(item.id)
+                          }}
+                        >
+                          {item.type === "divider" && (
+                            <div style={{ height: 2, marginTop: item.h / 2 }} className="w-full" >
+                              <div className="h-[2px] w-full" style={{ backgroundColor: item.borderColor }} />
+                            </div>
+                          )}
 
-                        {item.type === "box" && (
-                          <div
-                            className="h-full w-full rounded-md border p-2"
-                            style={{
-                              borderColor: item.borderColor,
-                              backgroundColor: item.fillColor,
-                              opacity: Math.max(0.05, item.opacity),
-                              color: item.color,
-                              fontSize: item.fontSize,
-                              textAlign: item.align,
-                              overflow: "hidden",
-                            }}
-                          >
-                            {item.text}
-                          </div>
-                        )}
+                          {item.type === "box" && (
+                            <div
+                              className="h-full w-full rounded-md border p-2"
+                              style={{
+                                borderColor: item.borderColor,
+                                backgroundColor: item.fillColor,
+                                opacity: Math.max(0.05, item.opacity),
+                                color: item.color,
+                                fontSize: item.fontSize,
+                                textAlign: item.align,
+                                overflow: "hidden",
+                              }}
+                            >
+                              {item.text}
+                            </div>
+                          )}
 
-                        {item.type === "image" && (
-                          <div className="h-full w-full overflow-hidden rounded-md border border-slate-300 bg-slate-50">
-                            {item.imageData ? (
-                              <img src={item.imageData} alt={item.imageName || "image"} className="h-full w-full object-contain" draggable={false} />
-                            ) : (
-                              <div className="flex h-full items-center justify-center text-xs text-muted-foreground">Image Placeholder</div>
-                            )}
-                          </div>
-                        )}
+                          {item.type === "image" && (
+                            <div className="h-full w-full overflow-hidden rounded-md border border-slate-300 bg-slate-50">
+                              {item.imageData ? (
+                                <img src={item.imageData} alt={item.imageName || "image"} className="h-full w-full object-contain" draggable={false} />
+                              ) : (
+                                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">Image Placeholder</div>
+                              )}
+                            </div>
+                          )}
 
-                        {isText && (
-                          <div
-                            contentEditable
-                            suppressContentEditableWarning
-                            spellCheck={false}
-                            className={cn("h-full w-full bg-transparent outline-none", item.type === "heading" ? "font-semibold" : "")}
-                            style={{
-                              color: item.color,
-                              fontSize: item.fontSize,
-                              textAlign: item.align,
-                              lineHeight: 1.3,
-                              whiteSpace: "pre-wrap",
-                              overflow: "hidden",
-                            }}
-                            onBlur={(e) => updateElement(item.id, { text: e.currentTarget.textContent || "" })}
-                            onMouseDown={(e) => {
-                              if (e.detail >= 2) e.stopPropagation()
-                            }}
-                          >
-                            {item.text}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
+                          {isText && (
+                            <div
+                              contentEditable
+                              suppressContentEditableWarning
+                              spellCheck={false}
+                              className={cn("h-full w-full bg-transparent outline-none", item.type === "heading" ? "font-semibold" : "")}
+                              style={{
+                                color: item.color,
+                                fontSize: item.fontSize,
+                                textAlign: item.align,
+                                lineHeight: 1.3,
+                                whiteSpace: "pre-wrap",
+                                overflow: "hidden",
+                              }}
+                              onBlur={(e) => updateElement(item.id, { text: e.currentTarget.textContent || "" })}
+                              onMouseDown={(e) => {
+                                if (e.detail >= 2) e.stopPropagation()
+                              }}
+                            >
+                              {item.text}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        }
+      />
 
       {contextMenu && (
         <div
@@ -1059,7 +1130,7 @@ function PdfGeneratorPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </ToolPageLayout>
+    </WorkbenchLayout>
   )
 }
 

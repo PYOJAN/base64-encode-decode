@@ -1,18 +1,17 @@
-import { useMemo, useRef, useState } from "react"
+import { Fragment, useMemo, useRef, useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import {
   BookOpen,
-  FileCheck2,
+  ExternalLink,
   RefreshCw,
   Settings2,
   ShieldCheck,
   Trash2,
-  Upload,
 } from "lucide-react"
 import type { DefaultLayoutPluginOptions, ToolbarConfig } from "@trexolab/verifykit-react"
 import { PdfViewer, type PdfViewerOptions } from "@/components/pdf-viewer"
-import { FileDropzone } from "@/components/file-dropzone"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { PdfDropSurface, WorkbenchLayout } from "@/components"
+import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -20,10 +19,17 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
 import {
   Sheet,
   SheetContent,
@@ -34,7 +40,6 @@ import {
 } from "@/components/ui/sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
-import { ToolPageLayout } from "@/components"
 
 export const Route = createFileRoute("/pdf-verification")({
   component: PdfVerificationPage,
@@ -45,9 +50,15 @@ const DEFAULT_CMAP_URL = `${import.meta.env.BASE_URL}cmaps/`
 const DEFAULT_FONT_URL = `${import.meta.env.BASE_URL}standard_fonts/`
 const DEFAULT_REVOCATION_ENDPOINT = "https://verifykit.trexolab.com/api/revocation"
 
+const LIBRARY_BLURB =
+  "Adobe-style PDF signature verification on a Rust/WASM engine. Every check runs in this browser tab — no document is uploaded anywhere."
+
 const DOC_LINKS = [
+  { label: "Quick Start", href: "https://verifykit.trexolab.com/docs/quick-start" },
   { label: "React Guide", href: "https://verifykit.trexolab.com/docs/react" },
   { label: "React API", href: "https://verifykit.trexolab.com/docs/api/react" },
+  { label: "Plugins Guide", href: "https://verifykit.trexolab.com/docs/plugins" },
+  { label: "Customization", href: "https://verifykit.trexolab.com/docs/customization" },
   { label: "Revocation Guide", href: "https://verifykit.trexolab.com/docs/revocation" },
   { label: "Revocation API", href: "https://verifykit.trexolab.com/docs/api/plugin-revocation" },
 ]
@@ -107,10 +118,21 @@ const providerReference = [
   { name: "toolbar", type: "ToolbarConfig", defaultValue: "mixed", detail: "Visibility model for all toolbar controls." },
   { name: "locale", type: "string", defaultValue: "en", detail: "Built-in locale code." },
   { name: "translations", type: "Partial<TranslationStrings>", defaultValue: "{}", detail: "Per-key translation overrides." },
+  { name: "plugins", type: "VerifyKitPlugin[]", defaultValue: "[]", detail: "Core plugins array (inherited from VerifyKitCoreConfig). The revocation plugin is passed here." },
+  { name: "enableAIA", type: "boolean", defaultValue: "true", detail: "Automatic AIA certificate chasing. Set false to block network fetches during verification." },
+  { name: "algorithmPolicy", type: "AlgorithmPolicy", defaultValue: "Adobe parity", detail: "Since 0.5.3 SHA-1 reads as valid with an algorithmName disclosure. Pass { sha1: 'warn' } for a stricter policy. MD5/MD2/MD4 stay invalid and are not configurable." },
+  { name: "trustStore", type: "TrustStoreConfig", defaultValue: "bundled", detail: "Trust anchors used for chain building. Contents live in WASM and are no longer readable from JS." },
+]
+
+const layoutReference = [
+  { name: "disable", type: "Record<LayoutDisableKey, boolean>", defaultValue: "{}", detail: "Turns off individual plugins. Since 0.7.0 disabling a plugin also removes its overflow-menu entry." },
+  { name: "zoom", type: "ZoomPluginOptions", defaultValue: "25%-1000%", detail: "minScale / maxScale / step. Range widened from 40%-500% in 0.5.3 to match pdf.js." },
+  { name: "accessibility", type: "AccessibilityPluginOptions", defaultValue: "persist: true", detail: "initialScale ('compact' | 'default' | 'large' | 'extra-large') and whether the choice is saved to localStorage." },
+  { name: "toolbar.transform", type: "(slots) => slots", defaultValue: "identity", detail: "Add, remove, or reorder toolbar slots. A slot removed here is also withheld from the overflow menu." },
 ]
 
 const viewerReference = [
-  { name: "fileBuffer", type: "ArrayBuffer", detail: "PDF bytes passed into <Viewer>." },
+  { name: "fileBuffer", type: "ArrayBuffer | null", detail: "PDF bytes passed into <Viewer>." },
   { name: "fileName", type: "string", detail: "Display name used by the viewer." },
   { name: "plugins", type: "ViewerPlugin[]", detail: "Installed viewer plugins, commonly defaultLayoutPlugin()." },
   { name: "initialState", type: "Partial<ViewerStoreState>", detail: "Initial viewer store overrides." },
@@ -120,15 +142,17 @@ const viewerReference = [
   { name: "signaturePanelOpen", type: "boolean", detail: "Initial signature drawer state." },
   { name: "onOpenFile", type: "(file: File) => void", detail: "Required for the open-file toolbar action." },
   { name: "verifying", type: "boolean", detail: "Controls the verification progress floater." },
+  { name: "isActive", type: "boolean", detail: "Tab isolation. Default true; set false for a viewer in a background tab." },
+  { name: "onLoadError", type: "(error: LoadError) => void", detail: "LoadError is { name, message } — a plain object, not an Error instance." },
 ]
 
 const revocationReference = [
   { name: "endpoint", type: "string", detail: "Proxy endpoint for browser-safe CRL/OCSP checks." },
   { name: "timeout", type: "number", detail: "Timeout in milliseconds. Default 10000." },
-  { name: "crl", type: "boolean", detail: "Enable CRL checks." },
-  { name: "ocsp", type: "boolean", detail: "Enable OCSP checks." },
+  { name: "crl", type: "boolean", detail: "Enable CRL checks. Default true." },
+  { name: "ocsp", type: "boolean", detail: "Enable OCSP checks. Default true." },
   { name: "maxCrlSize", type: "number", detail: "Maximum CRL payload size in bytes. Default 10485760." },
-  { name: "headers", type: "Record<string, string>", detail: "Custom proxy request headers in browser mode." },
+  { name: "headers", type: "Record<string, string> | (() => Record<string, string>)", detail: "Custom proxy request headers in browser mode." },
   { name: "onError", type: "(error, context) => void", detail: "Code-level callback for revocation request failures." },
 ]
 
@@ -136,6 +160,7 @@ function PdfVerificationPage() {
   const [pdfData, setPdfData] = useState("")
   const [fileName, setFileName] = useState("")
   const [uploadError, setUploadError] = useState("")
+  const [readingName, setReadingName] = useState("")
 
   const [workerUrl, setWorkerUrl] = useState(DEFAULT_WORKER_URL)
   const [cMapUrl, setCMapUrl] = useState(DEFAULT_CMAP_URL)
@@ -287,457 +312,436 @@ function PdfVerificationPage() {
     }
 
     setUploadError("")
-    const dataUrl = await readFileAsDataUrl(file)
-    setPdfData(dataUrl)
-    setFileName(file.name)
+    setReadingName(file.name)
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file)
+      setPdfData(dataUrl)
+      setFileName(file.name)
+    } catch {
+      setUploadError("That file could not be read. Try selecting it again.")
+    } finally {
+      setReadingName("")
+    }
+  }
+
+  const clearPdf = () => {
+    setPdfData("")
+    setFileName("")
+    setUploadError("")
+  }
+
+  const resetSettings = () => {
+    setWorkerUrl(DEFAULT_WORKER_URL)
+    setCMapUrl(DEFAULT_CMAP_URL)
+    setStandardFontDataUrl(DEFAULT_FONT_URL)
+    setThemeMode("system")
+    setEmbeddedFontMode("bundled")
+    setCustomFontFamily("")
+    setLocale("en")
+    setThemeOverridesText("")
+    setTranslationsText("")
+    setRevocationHeadersText("")
+    setSignaturePanelOpen(true)
+    setRevocationEnabled(true)
+    setRevocationEndpoint(DEFAULT_REVOCATION_ENDPOINT)
+    setRevocationTimeout("10000")
+    setMaxCrlSizeMb("10")
+    setRevocationCrl(true)
+    setRevocationOcsp(true)
+    setToolbarConfig({
+      openFile: false,
+      pageNavigation: true,
+      zoom: true,
+      fitMode: true,
+      rotation: true,
+      scrollMode: true,
+      search: true,
+      print: true,
+      download: true,
+      themeToggle: true,
+      fullscreen: true,
+      signaturePanel: true,
+      cursorTool: true,
+      moreMenu: true,
+      documentProperties: true,
+    })
+    setLayoutDisable({
+      search: false,
+      print: false,
+      download: false,
+      fullscreen: false,
+      theme: false,
+      rotation: false,
+      selection: false,
+      sidebar: false,
+      signatures: false,
+      highlights: false,
+      openFile: false,
+      properties: false,
+      shortcuts: false,
+      contextMenu: false,
+      accessibility: false,
+    })
   }
 
   return (
-    <ToolPageLayout
-      variant="scroll"
-      icon={ShieldCheck}
+    <WorkbenchLayout
       title="PDF Verification"
-      description="Adobe-style web PDF signature verification powered by VerifyKit. Upload a signed PDF, inspect the live viewer, and tune the SDK settings in one place."
-      badge="VerifyKit SDK"
-      maxWidth="max-w-7xl"
-    >
-      <div className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
-        <div className="space-y-4 xl:sticky xl:top-20 xl:self-start">
-          <Card className="overflow-hidden border-slate-200/80 shadow-sm dark:border-slate-800">
-            <CardHeader className="space-y-2 pb-3">
-              <div className="flex items-center gap-2">
-                <Upload className="h-4 w-4 text-primary" />
-                <CardTitle className="text-base">Verification Session</CardTitle>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Keep the document review in the viewer. Use this rail only for upload, quick actions, and documentation.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <FileDropzone
-                onFile={handleFile}
-                accept=".pdf,application/pdf"
-                label="Drop a signed PDF"
-                sublabel="or click to browse from this device"
-                className="min-h-36 bg-background/80"
-              />
-
-              <div className="flex flex-wrap gap-2">
-                {fileName ? (
-                  <>
-                    <Badge variant="secondary">{fileName}</Badge>
-                  </>
-                ) : (
-                  <Badge variant="outline">Waiting for document</Badge>
-                )}
-              </div>
-
-              {uploadError && <p className="text-sm text-destructive">{uploadError}</p>}
-
-              <div className="grid gap-2">
-                <MiniToggle
-                  checked={revocationEnabled}
-                  label="Enable online revocation"
-                  onChange={setRevocationEnabled}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setPdfData("")
-                    setFileName("")
-                    setUploadError("")
-                  }}
-                  disabled={!pdfData}
-                >
-                  <Trash2 className="mr-1.5 h-4 w-4" />
-                  Clear PDF
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setWorkerUrl(DEFAULT_WORKER_URL)
-                    setCMapUrl(DEFAULT_CMAP_URL)
-                    setStandardFontDataUrl(DEFAULT_FONT_URL)
-                    setThemeMode("system")
-                    setEmbeddedFontMode("bundled")
-                    setCustomFontFamily("")
-                    setLocale("en")
-                    setThemeOverridesText("")
-                    setTranslationsText("")
-                    setRevocationHeadersText("")
-                    setSignaturePanelOpen(true)
-                    setRevocationEnabled(true)
-                    setRevocationEndpoint(DEFAULT_REVOCATION_ENDPOINT)
-                    setRevocationTimeout("10000")
-                    setMaxCrlSizeMb("10")
-                    setRevocationCrl(true)
-                    setRevocationOcsp(true)
-                    setToolbarConfig({
-                      openFile: false,
-                      pageNavigation: true,
-                      zoom: true,
-                      fitMode: true,
-                      rotation: true,
-                      scrollMode: true,
-                      search: true,
-                      print: true,
-                      download: true,
-                      themeToggle: true,
-                      fullscreen: true,
-                      signaturePanel: true,
-                      cursorTool: true,
-                      moreMenu: true,
-                      documentProperties: true,
-                    })
-                    setLayoutDisable({
-                      search: false,
-                      print: false,
-                      download: false,
-                      fullscreen: false,
-                      theme: false,
-                      rotation: false,
-                      selection: false,
-                      sidebar: false,
-                      signatures: false,
-                      highlights: false,
-                      openFile: false,
-                      properties: false,
-                      shortcuts: false,
-                      contextMenu: false,
-                      accessibility: false,
-                    })
-                  }}
-                >
-                  <RefreshCw className="mr-1.5 h-4 w-4" />
-                  Reset settings
-                </Button>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-3 rounded-2xl border border-sky-500/20 bg-sky-500/5 p-3">
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-sky-500/15 text-sky-700 hover:bg-sky-500/15 dark:text-sky-300">
-                    Learn More
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">VerifyKit docs</span>
-                </div>
-                <div className="grid gap-2">
-                  {DOC_LINKS.map((link) => (
-                    <Button
-                      key={link.href}
-                      asChild
-                      variant="outline"
-                      className="justify-start border-sky-500/20 bg-background/80 hover:bg-sky-500/10"
-                    >
-                      <a href={link.href} target="_blank" rel="noopener noreferrer">
-                        <BookOpen className="mr-2 h-4 w-4" />
-                        {link.label}
-                      </a>
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-        </div>
-
-        <div className="space-y-4">
-          <Card className="overflow-hidden border-slate-200/80 shadow-sm dark:border-slate-800">
-            <CardHeader className="pb-3">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300">
-                    {verificationModeLabel}
-                  </Badge>
-                  <Badge className="bg-sky-500/15 text-sky-700 hover:bg-sky-500/15 dark:text-sky-300">
-                    {signaturePanelOpen ? "Panel open" : "Panel closed"}
-                  </Badge>
-                  {hasPdf ? (
-                    <Badge className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/15 dark:text-amber-300">
-                      {fileName}
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline">Waiting for PDF</Badge>
-                  )}
-                  <Badge className="bg-violet-500/15 text-violet-700 hover:bg-violet-500/15 dark:text-violet-300">
-                    v{__VERIFYKIT_VERSION__}
-                  </Badge>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <Sheet>
-                    <SheetTrigger asChild>
-                      <Button size="sm">
-                        <Settings2 className="mr-1.5 h-4 w-4" />
-                        Open Settings
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent side="right" className="w-full overflow-hidden p-0 sm:max-w-xl">
-                      <div className="flex h-full flex-col">
-                        <SheetHeader className="border-b px-6 py-5">
-                          <SheetTitle>Verification Settings</SheetTitle>
-                          <SheetDescription>
-                            Full VerifyKit controls live here so the page can stay centered on the PDF viewer.
-                          </SheetDescription>
-                        </SheetHeader>
-                        <div className="min-h-0 flex-1 p-4">
-                          <Tabs defaultValue="verify" className="flex h-full flex-col gap-4">
-                            <TabsList className="grid w-full grid-cols-4">
-                              <TabsTrigger value="verify">Verify</TabsTrigger>
-                              <TabsTrigger value="viewer">Viewer</TabsTrigger>
-                              <TabsTrigger value="advanced">Advanced</TabsTrigger>
-                              <TabsTrigger value="links">Links</TabsTrigger>
-                            </TabsList>
-                            <ScrollArea className="min-h-0 flex-1 pr-3">
-                              <TabsContent value="verify" className="mt-0 space-y-4">
-                                <InspectorSection
-                                  title="Verification defaults"
-                                  description="Use this tab for trust checks and the initial review flow."
-                                >
-                                  <div className="grid gap-2">
-                                    <MiniToggle checked={signaturePanelOpen} label="Open signature panel" onChange={setSignaturePanelOpen} />
-                                    <MiniToggle checked={revocationEnabled} label="Enable revocation plugin" onChange={setRevocationEnabled} />
-                                  </div>
-                                  <Field label="Revocation endpoint">
-                                    <Input value={revocationEndpoint} onChange={(e) => setRevocationEndpoint(e.target.value)} />
-                                  </Field>
-                                  <div className="grid gap-3 sm:grid-cols-2">
-                                    <Field label="timeout (ms)">
-                                      <Input value={revocationTimeout} onChange={(e) => setRevocationTimeout(e.target.value)} />
-                                    </Field>
-                                    <Field label="maxCrlSize (MB)">
-                                      <Input value={maxCrlSizeMb} onChange={(e) => setMaxCrlSizeMb(e.target.value)} />
-                                    </Field>
-                                  </div>
-                                  <div className="grid gap-2 sm:grid-cols-2">
-                                    <MiniToggle checked={revocationCrl} label="Use CRL" onChange={setRevocationCrl} />
-                                    <MiniToggle checked={revocationOcsp} label="Use OCSP" onChange={setRevocationOcsp} />
-                                  </div>
-                                  <Field label="locale">
-                                    <Input value={locale} onChange={(e) => setLocale(e.target.value)} />
-                                  </Field>
-                                </InspectorSection>
-                              </TabsContent>
-
-                              <TabsContent value="viewer" className="mt-0 space-y-4">
-                                <InspectorSection
-                                  title="Display settings"
-                                  description="Visual settings stay separate from trust settings."
-                                >
-                                  <Field label="theme.mode">
-                                    <select
-                                      className="h-9 w-full rounded-md border bg-background px-3 text-sm"
-                                      value={themeMode}
-                                      onChange={(e) => setThemeMode(e.target.value as "light" | "dark" | "system")}
-                                    >
-                                      <option value="system">system</option>
-                                      <option value="light">light</option>
-                                      <option value="dark">dark</option>
-                                    </select>
-                                  </Field>
-                                  <Field label="embeddedFont">
-                                    <select
-                                      className="h-9 w-full rounded-md border bg-background px-3 text-sm"
-                                      value={embeddedFontMode}
-                                      onChange={(e) => setEmbeddedFontMode(e.target.value as "bundled" | "system" | "custom")}
-                                    >
-                                      <option value="bundled">Bundled VerifyKit font</option>
-                                      <option value="system">System font stack</option>
-                                      <option value="custom">Custom font-family</option>
-                                    </select>
-                                  </Field>
-                                  {embeddedFontMode === "custom" && (
-                                    <Field label="custom font-family">
-                                      <Input
-                                        value={customFontFamily}
-                                        onChange={(e) => setCustomFontFamily(e.target.value)}
-                                        placeholder='"IBM Plex Sans", sans-serif'
-                                      />
-                                    </Field>
-                                  )}
-                                </InspectorSection>
-
-                                <InspectorSection
-                                  title="Viewer modules"
-                                  description="Open detailed module maps only when you need them."
-                                >
-                                  <Collapsible defaultOpen>
-                                    <div className="rounded-2xl border">
-                                      <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium">
-                                        <span>Toolbar controls</span>
-                                        <Badge variant="secondary">{enabledToolbarCount} enabled</Badge>
-                                      </CollapsibleTrigger>
-                                      <CollapsibleContent className="border-t px-3 py-3">
-                                        <div className="grid gap-2">
-                                          {toolbarFields.map((field) => (
-                                            <MiniToggle
-                                              key={field.key}
-                                              checked={toolbarConfig[field.key]}
-                                              label={field.label}
-                                              onChange={(checked) =>
-                                                setToolbarConfig((current) => ({ ...current, [field.key]: checked }))
-                                              }
-                                            />
-                                          ))}
-                                        </div>
-                                      </CollapsibleContent>
-                                    </div>
-                                  </Collapsible>
-
-                                  <Collapsible>
-                                    <div className="rounded-2xl border">
-                                      <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium">
-                                        <span>Disabled layout plugins</span>
-                                        <Badge variant="secondary">{disabledLayoutCount} disabled</Badge>
-                                      </CollapsibleTrigger>
-                                      <CollapsibleContent className="border-t px-3 py-3">
-                                        <div className="grid gap-2">
-                                          {layoutDisableFields.map((field) => (
-                                            <MiniToggle
-                                              key={field.key}
-                                              checked={layoutDisable[field.key]}
-                                              label={field.label}
-                                              onChange={(checked) =>
-                                                setLayoutDisable((current) => ({ ...current, [field.key]: checked }))
-                                              }
-                                            />
-                                          ))}
-                                        </div>
-                                      </CollapsibleContent>
-                                    </div>
-                                  </Collapsible>
-                                </InspectorSection>
-                              </TabsContent>
-
-                              <TabsContent value="advanced" className="mt-0 space-y-4">
-                                <InspectorSection
-                                  title="Asset and provider overrides"
-                                  description="Deep SDK hooks and PDF.js asset mappings."
-                                >
-                                  <Field label="workerUrl">
-                                    <Input value={workerUrl} onChange={(e) => setWorkerUrl(e.target.value)} />
-                                  </Field>
-                                  <Field label="cMapUrl">
-                                    <Input value={cMapUrl} onChange={(e) => setCMapUrl(e.target.value)} />
-                                  </Field>
-                                  <Field label="standardFontDataUrl">
-                                    <Input value={standardFontDataUrl} onChange={(e) => setStandardFontDataUrl(e.target.value)} />
-                                  </Field>
-                                  <Field label="theme.overrides JSON">
-                                    <Textarea
-                                      rows={4}
-                                      className="resize-none font-mono text-xs"
-                                      value={themeOverridesText}
-                                      onChange={(e) => setThemeOverridesText(e.target.value)}
-                                      placeholder={"{\n  \"--vk-accent\": \"#0f766e\"\n}"}
-                                    />
-                                  </Field>
-                                  <Field label="translations JSON">
-                                    <Textarea
-                                      rows={4}
-                                      className="resize-none font-mono text-xs"
-                                      value={translationsText}
-                                      onChange={(e) => setTranslationsText(e.target.value)}
-                                      placeholder={"{\n  \"panel.signatures\": \"Signature Results\"\n}"}
-                                    />
-                                  </Field>
-                                  <Field label="headers JSON">
-                                    <Textarea
-                                      rows={4}
-                                      className="resize-none font-mono text-xs"
-                                      value={revocationHeadersText}
-                                      onChange={(e) => setRevocationHeadersText(e.target.value)}
-                                      placeholder={"{\n  \"x-demo-key\": \"verifykit\"\n}"}
-                                    />
-                                  </Field>
-                                </InspectorSection>
-                              </TabsContent>
-
-                              <TabsContent value="links" className="mt-0 space-y-4">
-                                <InspectorSection
-                                  title="Knowledge links"
-                                  description="Direct VerifyKit links, plus the API coverage used by this page."
-                                >
-                                  <div className="grid gap-2">
-                                    {DOC_LINKS.map((link) => (
-                                      <Button key={link.href} asChild variant="outline" className="justify-start">
-                                        <a href={link.href} target="_blank" rel="noopener noreferrer">
-                                          <BookOpen className="mr-2 h-4 w-4" />
-                                          {link.label}
-                                        </a>
-                                      </Button>
-                                    ))}
-                                  </div>
-                                </InspectorSection>
-                                <ReferenceList title="VerifyKitProvider / VerifyKitConfig" items={providerReference} />
-                                <ReferenceList title="Viewer Props" items={viewerReference} />
-                                <ReferenceList title="revocationPlugin Options" items={revocationReference} />
-                              </TabsContent>
-                            </ScrollArea>
-                          </Tabs>
-                        </div>
-                      </div>
-                    </SheetContent>
-                  </Sheet>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {configWarnings.length > 0 && (
-                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-100">
-                  <p className="font-medium">Some JSON overrides are invalid and are being ignored.</p>
-                  <ul className="mt-2 space-y-1 text-xs">
-                    {configWarnings.map((warning) => (
-                      <li key={warning}>{warning}</li>
-                    ))}
-                  </ul>
-                </div>
+      status={
+        <>
+          <div className="flex shrink-0 items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            <span
+              className={cn(
+                "h-1.5 w-1.5 rounded-full",
+                revocationEnabled ? "bg-emerald-500" : "bg-amber-500"
               )}
+            />
+            <span className="text-xs font-medium">{verificationModeLabel}</span>
+          </div>
 
-              {pdfData ? (
-                <div className="space-y-3">
-                  <div className="h-[calc(100svh-12rem)] min-h-[calc(100svh-12rem)] overflow-hidden border border-slate-200 bg-background shadow-[0_16px_60px_-28px_rgba(15,23,42,0.45)] dark:border-slate-800">
-                    <PdfViewer
-                      key={viewerRenderKey}
-                      data={pdfData}
-                      title={fileName || "Verification Preview"}
-                      className="h-full"
-                      onOpenFile={handleFile}
-                      viewerOptions={viewerOptions}
-                    />
-                  </div>
+          {hasPdf && (
+            <>
+              <span className="hidden h-4 w-px shrink-0 bg-border sm:block" />
+              <span
+                className="min-w-0 flex-1 truncate text-xs text-muted-foreground"
+                title={fileName}
+              >
+                {fileName}
+              </span>
+              <span className="hidden shrink-0 text-xs text-muted-foreground sm:block">
+                {signaturePanelOpen ? "Panel open" : "Panel closed"}
+              </span>
+            </>
+          )}
+        </>
+      }
+      actions={
+        <>
+          <DocsMenu />
+          {hasPdf && (
+            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={clearPdf}>
+              <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+              Clear
+            </Button>
+          )}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button size="sm">
+                <Settings2 className="mr-1.5 h-4 w-4" />
+                Open Settings
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full overflow-hidden p-0 sm:max-w-xl">
+              <div className="flex h-full flex-col">
+                <SheetHeader className="border-b px-6 py-5">
+                  <SheetTitle>Verification Settings</SheetTitle>
+                  <SheetDescription>
+                    Full VerifyKit controls live here so the page can stay centered on the PDF viewer.
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="min-h-0 flex-1 p-4">
+                  <Tabs defaultValue="verify" className="flex h-full flex-col gap-4">
+                    <TabsList className="grid w-full grid-cols-4">
+                      <TabsTrigger value="verify">Verify</TabsTrigger>
+                      <TabsTrigger value="viewer">Viewer</TabsTrigger>
+                      <TabsTrigger value="advanced">Advanced</TabsTrigger>
+                      <TabsTrigger value="links">Links</TabsTrigger>
+                    </TabsList>
+                    <ScrollArea className="min-h-0 flex-1 pr-3">
+                      <TabsContent value="verify" className="mt-0 space-y-4">
+                        <InspectorSection
+                          title="Verification defaults"
+                          description="Use this tab for trust checks and the initial review flow."
+                        >
+                          <div className="grid gap-2">
+                            <MiniToggle checked={signaturePanelOpen} label="Open signature panel" onChange={setSignaturePanelOpen} />
+                            <MiniToggle checked={revocationEnabled} label="Enable revocation plugin" onChange={setRevocationEnabled} />
+                          </div>
+                          <Field label="Revocation endpoint">
+                            <Input value={revocationEndpoint} onChange={(e) => setRevocationEndpoint(e.target.value)} />
+                          </Field>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <Field label="timeout (ms)">
+                              <Input value={revocationTimeout} onChange={(e) => setRevocationTimeout(e.target.value)} />
+                            </Field>
+                            <Field label="maxCrlSize (MB)">
+                              <Input value={maxCrlSizeMb} onChange={(e) => setMaxCrlSizeMb(e.target.value)} />
+                            </Field>
+                          </div>
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            <MiniToggle checked={revocationCrl} label="Use CRL" onChange={setRevocationCrl} />
+                            <MiniToggle checked={revocationOcsp} label="Use OCSP" onChange={setRevocationOcsp} />
+                          </div>
+                          <Field label="locale">
+                            <Input value={locale} onChange={(e) => setLocale(e.target.value)} />
+                          </Field>
+                        </InspectorSection>
+                      </TabsContent>
+
+                      <TabsContent value="viewer" className="mt-0 space-y-4">
+                        <InspectorSection
+                          title="Display settings"
+                          description="Visual settings stay separate from trust settings."
+                        >
+                          <Field label="theme.mode">
+                            <select
+                              className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                              value={themeMode}
+                              onChange={(e) => setThemeMode(e.target.value as "light" | "dark" | "system")}
+                            >
+                              <option value="system">system</option>
+                              <option value="light">light</option>
+                              <option value="dark">dark</option>
+                            </select>
+                          </Field>
+                          <Field label="embeddedFont">
+                            <select
+                              className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                              value={embeddedFontMode}
+                              onChange={(e) => setEmbeddedFontMode(e.target.value as "bundled" | "system" | "custom")}
+                            >
+                              <option value="bundled">Bundled VerifyKit font</option>
+                              <option value="system">System font stack</option>
+                              <option value="custom">Custom font-family</option>
+                            </select>
+                          </Field>
+                          {embeddedFontMode === "custom" && (
+                            <Field label="custom font-family">
+                              <Input
+                                value={customFontFamily}
+                                onChange={(e) => setCustomFontFamily(e.target.value)}
+                                placeholder='"IBM Plex Sans", sans-serif'
+                              />
+                            </Field>
+                          )}
+                        </InspectorSection>
+
+                        <InspectorSection
+                          title="Viewer modules"
+                          description="Open detailed module maps only when you need them."
+                        >
+                          <Collapsible defaultOpen>
+                            <div className="rounded-2xl border">
+                              <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium">
+                                <span>Toolbar controls</span>
+                                <Badge variant="secondary">{enabledToolbarCount} enabled</Badge>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent className="border-t px-3 py-3">
+                                <div className="grid gap-2">
+                                  {toolbarFields.map((field) => (
+                                    <MiniToggle
+                                      key={field.key}
+                                      checked={toolbarConfig[field.key]}
+                                      label={field.label}
+                                      onChange={(checked) =>
+                                        setToolbarConfig((current) => ({ ...current, [field.key]: checked }))
+                                      }
+                                    />
+                                  ))}
+                                </div>
+                              </CollapsibleContent>
+                            </div>
+                          </Collapsible>
+
+                          <Collapsible>
+                            <div className="rounded-2xl border">
+                              <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium">
+                                <span>Disabled layout plugins</span>
+                                <Badge variant="secondary">{disabledLayoutCount} disabled</Badge>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent className="border-t px-3 py-3">
+                                <div className="grid gap-2">
+                                  {layoutDisableFields.map((field) => (
+                                    <MiniToggle
+                                      key={field.key}
+                                      checked={layoutDisable[field.key]}
+                                      label={field.label}
+                                      onChange={(checked) =>
+                                        setLayoutDisable((current) => ({ ...current, [field.key]: checked }))
+                                      }
+                                    />
+                                  ))}
+                                </div>
+                              </CollapsibleContent>
+                            </div>
+                          </Collapsible>
+                        </InspectorSection>
+                      </TabsContent>
+
+                      <TabsContent value="advanced" className="mt-0 space-y-4">
+                        <InspectorSection
+                          title="Asset and provider overrides"
+                          description="Deep SDK hooks and PDF.js asset mappings."
+                        >
+                          <Field label="workerUrl">
+                            <Input value={workerUrl} onChange={(e) => setWorkerUrl(e.target.value)} />
+                          </Field>
+                          <Field label="cMapUrl">
+                            <Input value={cMapUrl} onChange={(e) => setCMapUrl(e.target.value)} />
+                          </Field>
+                          <Field label="standardFontDataUrl">
+                            <Input value={standardFontDataUrl} onChange={(e) => setStandardFontDataUrl(e.target.value)} />
+                          </Field>
+                          <Field label="theme.overrides JSON">
+                            <Textarea
+                              rows={4}
+                              className="resize-none font-mono text-xs"
+                              value={themeOverridesText}
+                              onChange={(e) => setThemeOverridesText(e.target.value)}
+                              placeholder={"{\n  \"--vk-accent\": \"#0f766e\"\n}"}
+                            />
+                          </Field>
+                          <Field label="translations JSON">
+                            <Textarea
+                              rows={4}
+                              className="resize-none font-mono text-xs"
+                              value={translationsText}
+                              onChange={(e) => setTranslationsText(e.target.value)}
+                              placeholder={"{\n  \"panel.signatures\": \"Signature Results\"\n}"}
+                            />
+                          </Field>
+                          <Field label="headers JSON">
+                            <Textarea
+                              rows={4}
+                              className="resize-none font-mono text-xs"
+                              value={revocationHeadersText}
+                              onChange={(e) => setRevocationHeadersText(e.target.value)}
+                              placeholder={"{\n  \"x-demo-key\": \"verifykit\"\n}"}
+                            />
+                          </Field>
+                        </InspectorSection>
+                      </TabsContent>
+
+                      <TabsContent value="links" className="mt-0 space-y-4">
+                        <InspectorSection
+                          title="Knowledge links"
+                          description="Direct VerifyKit links, plus the API coverage used by this page."
+                        >
+                          <div className="grid gap-2">
+                            {DOC_LINKS.map((link) => (
+                              <Button key={link.href} asChild variant="outline" className="justify-start">
+                                <a href={link.href} target="_blank" rel="noopener noreferrer">
+                                  <BookOpen className="mr-2 h-4 w-4" />
+                                  {link.label}
+                                </a>
+                              </Button>
+                            ))}
+                          </div>
+                        </InspectorSection>
+                        <ReferenceList title="VerifyKitProvider / VerifyKitConfig" items={providerReference} />
+                        <ReferenceList title="Viewer Props" items={viewerReference} />
+                        <ReferenceList title="defaultLayoutPlugin Options" items={layoutReference} />
+                        <ReferenceList title="revocationPlugin Options" items={revocationReference} />
+                      </TabsContent>
+                    </ScrollArea>
+                  </Tabs>
                 </div>
-              ) : (
-                <div className="flex min-h-[calc(100svh-12rem)] flex-col items-center justify-center rounded-[28px] border border-dashed border-slate-300 bg-background/80 px-8 text-center shadow-inner dark:border-slate-700">
-                  <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <FileCheck2 className="h-6 w-6" />
-                  </div>
-                  <h3 className="text-2xl font-semibold tracking-tight">The PDF viewer becomes the main evidence surface once a file is loaded.</h3>
-                  <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                    Upload a signed PDF from the left. This workspace is built so the document stays central, the
-                    verification message is visible, and deeper SDK controls remain available without taking over the page.
+                <div className="flex items-center justify-between gap-3 border-t px-6 py-4">
+                  <p className="text-xs text-muted-foreground">
+                    Restore every SDK control to its default.
                   </p>
-                  <div className="mt-5 flex flex-wrap justify-center gap-2">
-                    <Badge variant="secondary">Signature panel ready</Badge>
-                    <Badge variant="secondary">Toolbar configurable</Badge>
-                    <Badge variant="secondary">Revocation-aware</Badge>
-                    <Badge variant="secondary">PDF.js assets mapped</Badge>
-                  </div>
+                  <Button variant="outline" size="sm" onClick={resetSettings}>
+                    <RefreshCw className="mr-1.5 h-4 w-4" />
+                    Reset settings
+                  </Button>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </>
+      }
+      banner={
+        configWarnings.length > 0 ? (
+          <div className="shrink-0 border-b border-amber-500/30 bg-amber-500/10 px-3 py-2 sm:px-4">
+            <p className="text-xs text-amber-900 dark:text-amber-100">
+              Invalid JSON overrides ignored — {configWarnings.join(" ")}
+            </p>
+          </div>
+        ) : undefined
+      }
+    >
+      {pdfData ? (
+        <PdfViewer
+          bare
+          key={viewerRenderKey}
+          data={pdfData}
+          title={fileName || "Verification Preview"}
+          className="h-full"
+          onOpenFile={handleFile}
+          viewerOptions={viewerOptions}
+        />
+      ) : (
+        <PdfDropSurface
+          onFile={handleFile}
+          onReject={() => setUploadError("Only PDF files are supported for verification.")}
+          title="Verify a signed PDF"
+          subtitle="Drop a document anywhere on this panel, or browse from your device. Signatures, certificate chains, and revocation are all checked locally."
+          error={uploadError}
+          busy={Boolean(readingName)}
+          busyLabel={`Reading ${readingName}`}
+          footer={<VerifyKitFooter />}
+        />
+      )}
+    </WorkbenchLayout>
+  )
+}
 
-        </div>
+function DocsMenu() {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm">
+          <BookOpen className="mr-1.5 h-4 w-4" />
+          Docs
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel className="flex flex-col gap-0.5">
+          <span>VerifyKit docs</span>
+          <span className="text-xs font-normal text-muted-foreground">
+            v{__VERIFYKIT_VERSION__} &middot; runs fully in-browser
+          </span>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {DOC_LINKS.map((link) => (
+          <DropdownMenuItem key={link.href} asChild>
+            <a href={link.href} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+              <ExternalLink className="mr-2 h-3.5 w-3.5" />
+              {link.label}
+            </a>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+function VerifyKitFooter() {
+  return (
+    <div className="shrink-0 border-t px-4 py-3">
+      <p className="text-center text-xs leading-relaxed text-muted-foreground">
+        Powered by{" "}
+        <span className="font-medium text-foreground">VerifyKit v{__VERIFYKIT_VERSION__}</span>{" "}
+        &mdash; {LIBRARY_BLURB}
+      </p>
+      <div className="mt-2 flex flex-wrap items-center justify-center gap-y-1 text-xs">
+        {DOC_LINKS.map((link, index) => (
+          <Fragment key={link.href}>
+            {index > 0 && <span className="px-1 text-muted-foreground/40">&middot;</span>}
+            <a
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded text-primary underline-offset-4 hover:underline"
+            >
+              {link.label}
+            </a>
+          </Fragment>
+        ))}
       </div>
-    </ToolPageLayout>
+    </div>
   )
 }
 

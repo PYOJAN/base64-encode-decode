@@ -1,1 +1,0 @@
-import{s as o,j as t,W as l,ai as r}from"./index-BSg9IPmd.js";const i=r("text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"),n=o.forwardRef(({className:a,...e},s)=>t.jsx("label",{ref:s,className:l(i(),a),...e}));n.displayName="Label";export{n as L};

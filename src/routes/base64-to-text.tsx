@@ -1,17 +1,18 @@
-import { useState, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
-import { FileText, Copy } from "lucide-react"
+import { FileText, Copy, Loader2 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import {
+  BigTextOutput,
   ToolPageLayout,
   PasteClearButtons,
   ValidationDot,
 } from "@/components"
 import { useClipboard, useDebounce } from "@/hooks"
-import { base64ToText } from "@/utils/base64"
+import { decodeBase64ToText } from "@/utils/base64-async"
 import { isBase64 } from "@/utils/file-reader"
 
 export const Route = createFileRoute("/base64-to-text")({
@@ -20,25 +21,53 @@ export const Route = createFileRoute("/base64-to-text")({
 
 function Base64ToTextPage() {
   const [input, setInput] = useState("")
+  const [decoded, setDecoded] = useState("")
+  const [isDecoding, setIsDecoding] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
 
   const { copy, paste, isCopying, isPasting } = useClipboard()
   const debouncedInput = useDebounce(input, 300)
 
-  const trimmed = debouncedInput.trim()
-  const valid = trimmed.length > 0 && isBase64(trimmed)
+  const trimmed = useMemo(() => debouncedInput.trim(), [debouncedInput])
+  const valid = useMemo(() => trimmed.length > 0 && isBase64(trimmed), [trimmed])
 
-  let decoded = ""
-  if (valid) {
-    try {
-      decoded = base64ToText(trimmed)
-    } catch {
-      decoded = ""
+  useEffect(() => {
+    if (!valid) {
+      setDecoded("")
+      setIsDecoding(false)
+      return
     }
-  }
+
+    let cancelled = false
+    setIsDecoding(true)
+
+    decodeBase64ToText(trimmed)
+      .then((text) => {
+        if (!cancelled) setDecoded(text)
+      })
+      .catch(() => {
+        if (!cancelled) setDecoded("")
+      })
+      .finally(() => {
+        if (!cancelled) setIsDecoding(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [trimmed, valid])
 
   const charCount = decoded.length
-  const lineCount = decoded ? decoded.split("\n").length : 0
+
+  // `decoded.split("\n").length` allocates an array entry per line — millions of them for a
+  // large payload. Scanning for the separator counts the same lines and allocates nothing.
+  const lineCount = useMemo(() => {
+    if (!decoded) return 0
+
+    let count = 1
+    for (let i = decoded.indexOf("\n"); i !== -1; i = decoded.indexOf("\n", i + 1)) count += 1
+    return count
+  }, [decoded])
 
   const handlePaste = async () => {
     const text = await paste()
@@ -82,6 +111,7 @@ function Base64ToTextPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Paste Base64 string here..."
+              spellCheck={false}
               className="flex-1 min-h-0 resize-none font-mono text-xs leading-relaxed"
             />
 
@@ -98,9 +128,12 @@ function Base64ToTextPage() {
         <Card className="flex flex-col min-h-0">
           <CardContent className="flex flex-col flex-1 min-h-0 p-5 gap-4">
             <div className="flex items-center justify-between shrink-0">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Decoded Text
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Decoded Text
+                </h2>
+                {isDecoding && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+              </div>
               <Button
                 variant="outline"
                 size="sm"
@@ -112,20 +145,20 @@ function Base64ToTextPage() {
               </Button>
             </div>
 
-            <Textarea
-              readOnly
+            <BigTextOutput
               value={decoded}
               placeholder="Decoded text will appear here..."
-              className="flex-1 min-h-0 resize-none font-mono text-xs leading-relaxed bg-muted/30"
+              className="flex-1"
+              textareaClassName="bg-muted/30"
             />
 
             {decoded && (
               <div className="flex gap-3 shrink-0">
                 <Badge variant="outline" className="text-[10px] font-mono">
-                  {charCount} chars
+                  {charCount.toLocaleString()} chars
                 </Badge>
                 <Badge variant="outline" className="text-[10px] font-mono">
-                  {lineCount} {lineCount === 1 ? "line" : "lines"}
+                  {lineCount.toLocaleString()} {lineCount === 1 ? "line" : "lines"}
                 </Badge>
               </div>
             )}

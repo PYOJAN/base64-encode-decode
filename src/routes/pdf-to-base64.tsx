@@ -1,8 +1,7 @@
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { ClipboardPaste, Copy, FileUp, Link, Loader2, Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,13 +10,15 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { PdfViewer } from "@/components/pdf-viewer"
 import {
+  BigTextOutput,
   DocumentRail,
   PdfDropSurface,
   ResizableSplit,
   WorkbenchLayout,
 } from "@/components"
 import { useClipboard, useFileDrop } from "@/hooks"
-import { getBase64, formatFileSize } from "@/utils/file-reader"
+import { formatFileSize } from "@/utils/file-reader"
+import { encodeFileToBase64 } from "@/utils/base64-async"
 
 export const Route = createFileRoute("/pdf-to-base64")({
   component: PdfToBase64Page,
@@ -29,8 +30,12 @@ interface EncodedPdf {
   id: string
   name: string
   size: string
-  dataUri: string
+  /** Object URL backing the preview. The viewer takes this directly — no Base64 involved. */
+  url: string
+  /** Empty until the background encode finishes. */
   base64: string
+  encoding: boolean
+  failed: boolean
 }
 
 function isPdfFile(file: File) {
@@ -41,12 +46,17 @@ function PdfToBase64Page() {
   const [files, setFiles] = useState<EncodedPdf[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState("")
-  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
 
   const { copy, isCopying } = useClipboard()
   const addInputRef = useRef<HTMLInputElement>(null)
 
   const active = files.find((f) => f.id === activeId) ?? null
+
+  // Object URLs outlive React state unless we revoke them, so the last render's list is kept
+  // in a ref purely so unmount can clean up whatever is still open.
+  const filesRef = useRef(files)
+  filesRef.current = files
+  useEffect(() => () => filesRef.current.forEach((f) => URL.revokeObjectURL(f.url)), [])
 
   const addFiles = async (incoming: File[]) => {
     const pdfs = incoming.filter(isPdfFile)
@@ -57,51 +67,62 @@ function PdfToBase64Page() {
     }
 
     setUploadError(incoming.length > pdfs.length ? "Skipped files that were not PDFs." : "")
-    setProgress({ done: 0, total: pdfs.length })
+
+    // Register everything up front. The preview only needs an object URL, so documents open
+    // instantly and Base64 encoding — the slow part on a large PDF — happens behind them.
+    const entries: EncodedPdf[] = pdfs.map((file, index) => ({
+      id: `${file.name}-${file.size}-${index}-${performance.now()}`,
+      name: file.name,
+      size: formatFileSize(file.size),
+      url: URL.createObjectURL(file),
+      base64: "",
+      encoding: true,
+      failed: false,
+    }))
+
+    setFiles((current) => [...current, ...entries])
+    // The first of the batch, not the last: it is already viewable and it is what the user
+    // watched land.
+    setActiveId(entries[0]!.id)
 
     const failed: string[] = []
 
-    // Sequential rather than Promise.all: each entry appears as soon as it is ready, so the
-    // rail fills in progressively instead of staying empty until the slowest file lands.
+    // Sequential rather than Promise.all — one worker handles the queue, and encoding five
+    // large PDFs at once would only make each of them finish later.
     for (const [index, file] of pdfs.entries()) {
-      try {
-        const dataUri = await getBase64(file)
-        const entry: EncodedPdf = {
-          id: `${file.name}-${file.size}-${index}-${performance.now()}`,
-          name: file.name,
-          size: formatFileSize(file.size),
-          dataUri,
-          base64: dataUri.includes(",") ? dataUri.split(",")[1] ?? "" : dataUri,
-        }
+      const entry = entries[index]!
 
-        setFiles((current) => [...current, entry])
-        setActiveId(entry.id)
+      try {
+        const base64 = await encodeFileToBase64(file)
+        setFiles((current) =>
+          current.map((f) => (f.id === entry.id ? { ...f, base64, encoding: false } : f))
+        )
       } catch {
         failed.push(file.name)
+        setFiles((current) =>
+          current.map((f) => (f.id === entry.id ? { ...f, encoding: false, failed: true } : f))
+        )
       }
-
-      setProgress({ done: index + 1, total: pdfs.length })
     }
 
-    setProgress(null)
-    if (failed.length > 0) setUploadError(`Could not read ${failed.join(", ")}.`)
+    if (failed.length > 0) setUploadError(`Could not encode ${failed.join(", ")}.`)
   }
 
   const removeFile = (id: string) => {
-    setFiles((current) => {
-      const index = current.findIndex((f) => f.id === id)
-      const next = current.filter((f) => f.id !== id)
+    const index = files.findIndex((f) => f.id === id)
+    if (index === -1) return
 
-      if (id === activeId) {
-        const neighbour = next[index] ?? next[index - 1] ?? null
-        setActiveId(neighbour?.id ?? null)
-      }
+    URL.revokeObjectURL(files[index]!.url)
+    const next = files.filter((f) => f.id !== id)
+    setFiles(next)
 
-      return next
-    })
+    if (id === activeId) {
+      setActiveId((next[index] ?? next[index - 1])?.id ?? null)
+    }
   }
 
   const clearAll = () => {
+    files.forEach((f) => URL.revokeObjectURL(f.url))
     setFiles([])
     setActiveId(null)
     setUploadError("")
@@ -115,12 +136,8 @@ function PdfToBase64Page() {
     onReject: () => setUploadError("Only PDF files can be encoded here."),
   })
 
-  const busy = progress !== null
-  const busyLabel = progress
-    ? progress.total > 1
-      ? `Reading ${progress.done + 1} of ${progress.total}`
-      : "Reading PDF"
-    : "Reading PDF"
+  const encodingCount = files.filter((f) => f.encoding).length
+  const copyReady = Boolean(active && active.base64)
 
   return (
     <WorkbenchLayout
@@ -147,10 +164,10 @@ function PdfToBase64Page() {
             </>
           )}
 
-          {busy && (
+          {encodingCount > 0 && (
             <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
               <Loader2 className="h-3 w-3 animate-spin" />
-              {busyLabel}
+              {encodingCount > 1 ? `Encoding ${encodingCount} PDFs` : "Encoding"}
             </span>
           )}
         </>
@@ -164,7 +181,7 @@ function PdfToBase64Page() {
                   variant="outline"
                   size="sm"
                   className="h-8 text-xs"
-                  disabled={isCopying || !active}
+                  disabled={isCopying || !copyReady}
                 >
                   <Copy className="mr-1.5 h-3.5 w-3.5" />
                   {isCopying ? "Copying..." : "Copy"}
@@ -175,7 +192,12 @@ function PdfToBase64Page() {
                   <Copy className="mr-2 h-3.5 w-3.5" />
                   Raw Base64
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => active && copy(active.dataUri, "Data URI copied")}>
+                <DropdownMenuItem
+                  onClick={() =>
+                    active &&
+                    copy(`data:application/pdf;base64,${active.base64}`, "Data URI copied")
+                  }
+                >
                   <Link className="mr-2 h-3.5 w-3.5" />
                   Base64 Data URI
                 </DropdownMenuItem>
@@ -207,8 +229,6 @@ function PdfToBase64Page() {
           subtitle="Drop one or more PDFs anywhere on this panel, or browse from your device. Files are read locally and never uploaded."
           actionLabel="Choose PDFs"
           error={uploadError}
-          busy={busy}
-          busyLabel={busyLabel}
         />
       ) : (
         <div
@@ -232,7 +252,7 @@ function PdfToBase64Page() {
                   <PdfViewer
                     bare
                     key={active.id}
-                    data={active.dataUri}
+                    data={active.url}
                     title={active.name}
                     className="h-full"
                   />
@@ -243,14 +263,23 @@ function PdfToBase64Page() {
                       <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                         Base64 output
                       </span>
-                      <span className="font-mono text-[10px] text-muted-foreground">
-                        {active.base64.length.toLocaleString()} chars
+                      <span className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+                        {active.encoding && <Loader2 className="h-3 w-3 animate-spin" />}
+                        {active.encoding
+                          ? "encoding..."
+                          : active.failed
+                            ? "failed"
+                            : `${active.base64.length.toLocaleString()} chars`}
                       </span>
                     </div>
-                    <Textarea
-                      readOnly
+                    <BigTextOutput
+                      key={active.id}
                       value={active.base64}
-                      className="min-h-0 flex-1 resize-none rounded-none border-0 bg-transparent font-mono text-xs leading-relaxed focus-visible:ring-0"
+                      placeholder={
+                        active.failed ? "This PDF could not be encoded." : "Encoding this PDF..."
+                      }
+                      className="min-h-0 flex-1 gap-0"
+                      textareaClassName="rounded-none border-0 bg-transparent focus-visible:ring-0"
                     />
                   </div>
                 }

@@ -63,27 +63,67 @@ const DOC_LINKS = [
   { label: "Revocation API", href: "https://verifykit.trexolab.com/docs/api/plugin-revocation" },
 ]
 
+/**
+ * The toolbar controls this page can actually switch off.
+ *
+ * `ToolbarConfig` is wider than this — it also carries `fitMode`, `scrollMode`,
+ * `signaturePanel` and `documentProperties` — but those four cannot be honoured here.
+ * The provider's `config.toolbar` is read only by the SDK's legacy `ViewerToolbar`, which
+ * `Viewer`/`CoreViewer` never render, so the plugin viewer's sole lever is deleting a
+ * `ToolbarSlots` entry (see `applyToolbarVisibility`), and the four have no slot to delete.
+ * The two that matter are still reachable from the layout list below: `properties` covers
+ * document properties, `signatures` covers the signature panel.
+ *
+ * `Extract` rather than a bare union so that renaming a key in a future SDK release fails
+ * this build instead of silently reintroducing a switch that does nothing.
+ */
+type ToggleableToolbarKey = Extract<
+  keyof ToolbarConfig,
+  | "openFile"
+  | "pageNavigation"
+  | "zoom"
+  | "rotation"
+  | "search"
+  | "print"
+  | "download"
+  | "themeToggle"
+  | "fullscreen"
+  | "cursorTool"
+  | "moreMenu"
+>
+
 const toolbarFields: Array<{
-  key: keyof ToolbarConfig
+  key: ToggleableToolbarKey
   label: string
   note: string
 }> = [
   { key: "openFile", label: "Open File", note: "Hidden by default in the SDK toolbar." },
   { key: "pageNavigation", label: "Page Navigation", note: "Prev/next and page jump controls." },
   { key: "zoom", label: "Zoom", note: "Zoom in/out and percentage presets." },
-  { key: "fitMode", label: "Fit Mode", note: "Fit width and fit page toggles." },
   { key: "rotation", label: "Rotation", note: "Rotate clockwise and counter-clockwise." },
-  { key: "scrollMode", label: "Scroll Mode", note: "Vertical, horizontal, wrapped, and page modes." },
   { key: "search", label: "Search", note: "Find in document." },
   { key: "print", label: "Print", note: "Browser print action." },
   { key: "download", label: "Download", note: "Hidden by default in the SDK toolbar." },
   { key: "themeToggle", label: "Theme Toggle", note: "Light/dark switch in the toolbar." },
   { key: "fullscreen", label: "Fullscreen", note: "Presentation mode control." },
-  { key: "signaturePanel", label: "Signature Panel", note: "Signature drawer toggle." },
   { key: "cursorTool", label: "Cursor Tool", note: "Hand/select cursor switching." },
   { key: "moreMenu", label: "More Menu", note: "Overflow menu for extra actions." },
-  { key: "documentProperties", label: "Document Properties", note: "Show document metadata modal." },
 ]
+
+/** Shared by the initial state and "Reset settings" so the two cannot drift apart. */
+const DEFAULT_TOOLBAR_CONFIG: Record<ToggleableToolbarKey, boolean> = {
+  openFile: false,
+  pageNavigation: true,
+  zoom: true,
+  rotation: true,
+  search: true,
+  print: true,
+  download: true,
+  themeToggle: true,
+  fullscreen: true,
+  cursorTool: true,
+  moreMenu: true,
+}
 
 type LayoutDisableKey = keyof NonNullable<DefaultLayoutPluginOptions["disable"]>
 
@@ -115,7 +155,7 @@ const providerReference = [
   { name: "theme.mode", type: "'light' | 'dark' | 'system'", defaultValue: "system", detail: "Viewer theme mode." },
   { name: "theme.overrides", type: "Record<string, string>", defaultValue: "{}", detail: "CSS variable overrides for branding." },
   { name: "embeddedFont", type: "boolean | string", defaultValue: "true", detail: "Bundled font, system stack, or custom font-family string." },
-  { name: "toolbar", type: "ToolbarConfig", defaultValue: "mixed", detail: "Visibility model for all toolbar controls." },
+  { name: "toolbar", type: "ToolbarConfig", defaultValue: "mixed", detail: "Visibility model for the toolbar. Read by the legacy ViewerToolbar only — the plugin viewer hides a control by dropping its ToolbarSlots entry, which this page does via toolbar.transform. Keys with no slot (fitMode, scrollMode, signaturePanel, documentProperties) have no effect on Viewer." },
   { name: "locale", type: "string", defaultValue: "en", detail: "Built-in locale code." },
   { name: "translations", type: "Partial<TranslationStrings>", defaultValue: "{}", detail: "Per-key translation overrides." },
   { name: "plugins", type: "VerifyKitPlugin[]", defaultValue: "[]", detail: "Core plugins array (inherited from VerifyKitCoreConfig). The revocation plugin is passed here." },
@@ -181,23 +221,9 @@ function PdfVerificationPage() {
   const [revocationCrl, setRevocationCrl] = useState(true)
   const [revocationOcsp, setRevocationOcsp] = useState(true)
 
-  const [toolbarConfig, setToolbarConfig] = useState<Record<keyof ToolbarConfig, boolean>>({
-    openFile: false,
-    pageNavigation: true,
-    zoom: true,
-    fitMode: true,
-    rotation: true,
-    scrollMode: true,
-    search: true,
-    print: true,
-    download: true,
-    themeToggle: true,
-    fullscreen: true,
-    signaturePanel: true,
-    cursorTool: true,
-    moreMenu: true,
-    documentProperties: true,
-  })
+  const [toolbarConfig, setToolbarConfig] = useState<Record<ToggleableToolbarKey, boolean>>(
+    DEFAULT_TOOLBAR_CONFIG
+  )
 
   const [layoutDisable, setLayoutDisable] = useState<Record<LayoutDisableKey, boolean>>({
     search: false,
@@ -349,23 +375,7 @@ function PdfVerificationPage() {
     setMaxCrlSizeMb("10")
     setRevocationCrl(true)
     setRevocationOcsp(true)
-    setToolbarConfig({
-      openFile: false,
-      pageNavigation: true,
-      zoom: true,
-      fitMode: true,
-      rotation: true,
-      scrollMode: true,
-      search: true,
-      print: true,
-      download: true,
-      themeToggle: true,
-      fullscreen: true,
-      signaturePanel: true,
-      cursorTool: true,
-      moreMenu: true,
-      documentProperties: true,
-    })
+    setToolbarConfig(DEFAULT_TOOLBAR_CONFIG)
     setLayoutDisable({
       search: false,
       print: false,

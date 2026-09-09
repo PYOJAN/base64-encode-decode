@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react"
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { Download, FileDown, FileText, Loader2, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -13,8 +14,9 @@ import {
   WorkbenchLayout,
 } from "@/components"
 import { useClipboard } from "@/hooks"
-import { base64ToBlob } from "@/utils/base64"
-import { isBase64 } from "@/utils/file-reader"
+import { base64ByteLength } from "@/utils/base64"
+import { decodeBase64ToBytes } from "@/utils/base64-async"
+import { formatFileSize } from "@/utils/file-reader"
 import { normalizeBase64 } from "@/utils/smart-base64"
 
 export const Route = createFileRoute("/base64-to-pdf")({
@@ -27,59 +29,123 @@ interface Base64Doc {
   input: string
 }
 
-function formatBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
-}
-
-function getBase64ByteSize(base64: string) {
-  const padding = base64.match(/=+$/)?.[0].length ?? 0
-  return (base64.length * 3) / 4 - padding
+interface Preview {
+  url: string
+  /** The exact payload this preview was built from, so a stale one can be spotted. */
+  source: string
 }
 
 function createDoc(index: number): Base64Doc {
   return { id: `doc-${index}-${performance.now()}`, label: `Document ${index}`, input: "" }
 }
 
+const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46] // "%PDF"
+
 function Base64ToPdfPage() {
   const [docs, setDocs] = useState<Base64Doc[]>(() => [createDoc(1)])
   const [activeId, setActiveId] = useState<string | null>(() => null)
-  const [previewSrc, setPreviewSrc] = useState("")
+  const [preview, setPreview] = useState<Preview | null>(null)
+  const [isDownloading, setIsDownloading] = useState(false)
 
   const { paste, isPasting } = useClipboard()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const previewDocRef = useRef<string | null>(null)
+  const previewSourceRef = useRef<string | null>(null)
   const createdCount = useRef(1)
 
   const active = docs.find((d) => d.id === activeId) ?? docs[0] ?? null
   const input = active?.input ?? ""
+  const activeKey = active?.id ?? null
 
-  const trimmed = input.trim()
-  const normalized = normalizeBase64(input)
-  const wasRepaired = Boolean(normalized) && trimmed.replace(/\s+/g, "") !== normalized
-  const valid = Boolean(normalized) && isBase64(normalized ?? "")
+  // Normalising walks the whole payload. On a 14 M character paste that is pure waste on every
+  // unrelated re-render, so it is keyed to the input itself. A non-null result is already valid
+  // Base64 by construction, so there is no second validation pass here.
+  const { trimmed, normalized, valid, wasRepaired, byteSize } = useMemo(() => {
+    const value = input.trim()
+    const cleaned = normalizeBase64(value)
+    const isValid = cleaned !== null
+
+    return {
+      trimmed: value,
+      normalized: cleaned,
+      valid: isValid,
+      // A plain comparison rather than re-running the cleanup regexes just to diff them:
+      // engines compare strings natively and bail immediately on a length mismatch.
+      wasRepaired: isValid && cleaned !== value,
+      byteSize: isValid ? base64ByteLength(cleaned!) : 0,
+    }
+  }, [input])
+
   const raw = normalized ?? ""
-  const byteSize = getBase64ByteSize(raw)
 
-  // Switching documents must feel instant, but typing should settle before the viewer
-  // remounts — each remount re-runs a full PDF parse.
+  // The rail's size chips need the same expensive pass for every open document. Deferring only
+  // the chip values keeps typing responsive while the list structure stays current.
+  const deferredDocs = useDeferredValue(docs)
+  const metaById = useMemo(() => {
+    const map = new Map<string, string>()
+
+    for (const doc of deferredDocs) {
+      const cleaned = normalizeBase64(doc.input)
+      if (cleaned) map.set(doc.id, formatFileSize(base64ByteLength(cleaned)))
+    }
+
+    return map
+  }, [deferredDocs])
+
+  const railItems = docs.map((doc) => ({
+    id: doc.id,
+    label: doc.label,
+    meta: metaById.get(doc.id),
+  }))
+
+  /**
+   * The viewer is handed an object URL, not a Data URI. Passing Base64 would make it decode the
+   * whole payload a second time on the main thread, on top of the decode happening here.
+   */
   useEffect(() => {
-    const switched = previewDocRef.current !== active?.id
-    previewDocRef.current = active?.id ?? null
+    const switched = previewDocRef.current !== activeKey
+    previewDocRef.current = activeKey
 
-    if (switched) {
-      setPreviewSrc(raw)
+    if (!valid || !raw) {
+      previewSourceRef.current = null
+      setPreview(null)
       return
     }
 
-    const timer = setTimeout(() => setPreviewSrc(raw), 400)
-    return () => clearTimeout(timer)
-  }, [raw, active?.id])
+    if (previewSourceRef.current === raw) return
 
-  const previewReady = Boolean(previewSrc) && isBase64(previewSrc)
-  const previewPending = valid && previewSrc !== raw
-  const pdfDataUri = `data:application/pdf;base64,${previewSrc}`
+    let cancelled = false
+
+    // Switching documents must feel instant, but typing should settle first — every change
+    // means decoding the entire payload again.
+    const timer = setTimeout(() => {
+      void decodeBase64ToBytes(raw)
+        .then((bytes) => {
+          if (cancelled) return
+          previewSourceRef.current = raw
+          const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }))
+          setPreview({ url, source: raw })
+        })
+        .catch(() => {
+          if (!cancelled) toast.error("That Base64 could not be decoded.")
+        })
+    }, switched ? 0 : 400)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [raw, valid, activeKey])
+
+  // Runs when `preview` is replaced and on unmount, by which point the viewer already holds
+  // the newer URL.
+  useEffect(() => {
+    if (!preview) return
+    return () => URL.revokeObjectURL(preview.url)
+  }, [preview])
+
+  const previewReady = preview !== null
+  const previewPending = valid && preview?.source !== raw
 
   const updateActive = (value: string) => {
     if (!active) return
@@ -102,24 +168,23 @@ function Base64ToPdfPage() {
   }
 
   const removeDoc = (id: string) => {
-    setDocs((current) => {
-      const index = current.findIndex((d) => d.id === id)
-      const next = current.filter((d) => d.id !== id)
+    const index = docs.findIndex((d) => d.id === id)
+    if (index === -1) return
 
-      if (next.length === 0) {
-        createdCount.current = 1
-        const fresh = createDoc(1)
-        setActiveId(fresh.id)
-        return [fresh]
-      }
+    const next = docs.filter((d) => d.id !== id)
 
-      if (id === (activeId ?? current[0]?.id)) {
-        const neighbour = next[index] ?? next[index - 1] ?? null
-        setActiveId(neighbour?.id ?? null)
-      }
+    if (next.length === 0) {
+      createdCount.current = 1
+      const fresh = createDoc(1)
+      setDocs([fresh])
+      setActiveId(fresh.id)
+      return
+    }
 
-      return next
-    })
+    setDocs(next)
+    if (id === (activeId ?? docs[0]?.id)) {
+      setActiveId((next[index] ?? next[index - 1])?.id ?? null)
+    }
   }
 
   const clearAll = () => {
@@ -129,40 +194,30 @@ function Base64ToPdfPage() {
     setActiveId(fresh.id)
   }
 
-  const handleDownload = () => {
-    if (!valid) return
+  const handleDownload = async () => {
+    if (!valid || isDownloading) return
+
+    setIsDownloading(true)
     try {
-      const blob = base64ToBlob(raw, "application/pdf")
-      const reader = new FileReader()
-      reader.onload = () => {
-        const text = reader.result as string
-        if (!text.startsWith("%PDF")) {
-          alert("This Base64 does not appear to be a valid PDF.")
-          return
-        }
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = `${active?.label.toLowerCase().replace(/\s+/g, "-") ?? "decoded-file"}.pdf`
-        a.click()
-        URL.revokeObjectURL(url)
+      const bytes = await decodeBase64ToBytes(raw)
+
+      if (bytes.length < 4 || PDF_MAGIC.some((byte, i) => bytes[i] !== byte)) {
+        toast.error("This Base64 does not decode to a PDF.")
+        return
       }
-      reader.readAsText(blob.slice(0, 5))
+
+      const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }))
+      const link = document.createElement("a")
+      link.href = url
+      link.download = `${active?.label.toLowerCase().replace(/\s+/g, "-") ?? "decoded-file"}.pdf`
+      link.click()
+      URL.revokeObjectURL(url)
     } catch {
-      alert("Invalid Base64 data.")
+      toast.error("Invalid Base64 data.")
+    } finally {
+      setIsDownloading(false)
     }
   }
-
-  const railItems = docs.map((doc) => {
-    const docNormalized = normalizeBase64(doc.input)
-    const docValid = Boolean(docNormalized) && isBase64(docNormalized ?? "")
-
-    return {
-      id: doc.id,
-      label: doc.label,
-      meta: docValid ? formatBytes(getBase64ByteSize(docNormalized ?? "")) : undefined,
-    }
-  })
 
   return (
     <WorkbenchLayout
@@ -206,8 +261,17 @@ function Base64ToPdfPage() {
       }
       actions={
         <>
-          <Button size="sm" className="h-8 text-xs" onClick={handleDownload} disabled={!valid}>
-            <Download className="mr-1.5 h-3.5 w-3.5" />
+          <Button
+            size="sm"
+            className="h-8 text-xs"
+            onClick={handleDownload}
+            disabled={!valid || isDownloading}
+          >
+            {isDownloading ? (
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Download className="mr-1.5 h-3.5 w-3.5" />
+            )}
             Download
           </Button>
           {docs.length > 1 && (
@@ -235,7 +299,7 @@ function Base64ToPdfPage() {
                   <div className="flex min-w-0 items-center gap-2">
                     {trimmed && (
                       <span className="truncate font-mono text-[10px] text-muted-foreground">
-                        {valid ? `${formatBytes(byteSize)} · ` : ""}
+                        {valid ? `${formatFileSize(byteSize)} · ` : ""}
                         {trimmed.length.toLocaleString()} chars
                       </span>
                     )}
@@ -252,6 +316,7 @@ function Base64ToPdfPage() {
                   placeholder="Paste PDF Base64 string or Data URI here..."
                   value={input}
                   onChange={(e) => updateActive(e.target.value)}
+                  spellCheck={false}
                   className="min-h-0 flex-1 resize-none rounded-none border-0 bg-transparent font-mono text-xs leading-relaxed focus-visible:ring-0"
                 />
               </div>
@@ -261,7 +326,7 @@ function Base64ToPdfPage() {
                 <div className="relative h-full min-h-0">
                   <PdfViewer
                     bare
-                    data={pdfDataUri}
+                    data={preview.url}
                     title={active?.label ?? "Decoded PDF Preview"}
                     className="h-full"
                   />

@@ -55,6 +55,15 @@
   * {
     @apply border-border;
   }
+  /* Required by the VerifyKit viewer: it sizes itself against its ancestors, so without a
+     height chain from the root it collapses and renders a blank frame. */
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;

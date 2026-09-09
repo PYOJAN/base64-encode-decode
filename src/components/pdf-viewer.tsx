@@ -16,6 +16,7 @@ import { revocationPlugin } from "@trexolab/verifykit-plugin-revocation"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { extractBase64Data } from "@/utils/base64"
+import { decodeBase64ToBytes } from "@/utils/base64-async"
 import { isBase64 } from "@/utils/file-reader"
 
 const DEFAULT_REVOCATION_ENDPOINT = "https://verifykit.trexolab.com/api/revocation"
@@ -81,36 +82,27 @@ function PdfViewerContent({
   const viewerRef = useRef<ViewerHandle | null>(null)
   const toolbarVisibility = viewerOptions?.provider?.toolbar
 
-  const layoutKey = JSON.stringify({
-    disable: {
-      openFile: !onOpenFile,
-      download: Boolean(onDownload),
-      ...viewerOptions?.layout?.disable,
-    },
-    toolbar: viewerOptions?.layout?.toolbar,
-    accessibility: viewerOptions?.layout?.accessibility,
-    zoom: viewerOptions?.layout?.zoom,
-    toolbarVisibility,
-  })
-
-  const layout = useMemo(
-    () =>
-      defaultLayoutPlugin({
-        ...viewerOptions?.layout,
-        toolbar: {
-          ...viewerOptions?.layout?.toolbar,
-          transform: composeToolbarTransform(
-            viewerOptions?.layout?.toolbar?.transform,
-            toolbarVisibility
-          ),
-        },
-        disable: {
-          openFile: !onOpenFile,
-          download: Boolean(onDownload),
-          ...viewerOptions?.layout?.disable,
-        },
-      }),
-    [layoutKey, onDownload, onOpenFile, toolbarVisibility, viewerOptions?.layout]
+  // Built once per mount, as the SDK requires: "always construct it inside useState — building
+  // a plugin in the render body produces a new instance every render". A `useMemo` keyed on the
+  // callback props looked equivalent but hands the Viewer a fresh plugin whenever a caller
+  // passes an inline `onDownload`/`onOpenFile`. Callers that need different options remount
+  // instead (see `key={viewerRenderKey}` in routes/pdf-verification.tsx).
+  const [layout] = useState(() =>
+    defaultLayoutPlugin({
+      ...viewerOptions?.layout,
+      toolbar: {
+        ...viewerOptions?.layout?.toolbar,
+        transform: composeToolbarTransform(
+          viewerOptions?.layout?.toolbar?.transform,
+          toolbarVisibility
+        ),
+      },
+      disable: {
+        openFile: !onOpenFile,
+        download: Boolean(onDownload),
+        ...viewerOptions?.layout?.disable,
+      },
+    })
   )
 
   // `load` is rebuilt once the WASM verifier finishes booting, so keying this
@@ -167,7 +159,10 @@ function PdfViewerContent({
   }, [verification.signatures, viewerOptions?.signaturePanelOpen])
 
   const errorMessage = loadError ?? formatLoadError(verification.error)
-  const isReady = Boolean(verification.fileBuffer)
+  // `loadError` means the document cannot be displayed, so the error panel has to win even
+  // though a buffer exists. `verification.error` is deliberately not part of this: a signature
+  // that fails to verify is still a PDF the user should be able to read.
+  const isReady = Boolean(verification.fileBuffer) && !loadError
   const isLoading = isPreparing || verification.isLoading
 
   return (
@@ -217,6 +212,12 @@ function PdfViewerContent({
             verifying={verification.isLoading}
             signaturePanelOpen={viewerOptions?.signaturePanelOpen ?? false}
             onOpenFile={onOpenFile}
+            // Without this the Viewer's own failures are silent: `fileBuffer` is set, so the
+            // component below renders, and a PDF that pdf.js cannot display leaves an empty
+            // frame with no explanation. Surfacing it turns a blank panel into a real message.
+            onLoadError={(error) =>
+              setLoadError(formatLoadError(error) ?? "This PDF could not be displayed.")
+            }
           />
         </div>
       ) : isLoading ? (
@@ -246,13 +247,21 @@ function PdfViewerContent({
   )
 }
 
+const HAS_WHITESPACE = /\s/
+
+/**
+ * Prefer handing this component a blob or object URL. It short-circuits here, which skips a
+ * decode the caller has usually already paid for — on a 10 MB PDF that is ~14 M characters of
+ * Base64 walked twice for no reason.
+ */
 async function resolvePdfInput(data: string): Promise<ArrayBuffer | string> {
   if (/^blob:/i.test(data) || isUrlLike(data)) {
     return data
   }
 
   const { data: rawBase64, mimeType } = extractBase64Data(data)
-  const normalized = rawBase64.replace(/\s+/g, "")
+  // Unconditional `.replace()` copies the whole payload even when there is nothing to strip.
+  const normalized = HAS_WHITESPACE.test(rawBase64) ? rawBase64.replace(/\s+/g, "") : rawBase64
 
   if (mimeType && mimeType !== "application/pdf") {
     throw new Error(`Expected application/pdf but received ${mimeType}.`)
@@ -262,18 +271,7 @@ async function resolvePdfInput(data: string): Promise<ArrayBuffer | string> {
     throw new Error("Unsupported PDF input. Pass a PDF data URI, raw base64, blob URL, or URL.")
   }
 
-  return base64ToArrayBuffer(normalized)
-}
-
-function base64ToArrayBuffer(value: string) {
-  const binary = atob(value)
-  const bytes = new Uint8Array(binary.length)
-
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index)
-  }
-
-  return bytes.buffer
+  return (await decodeBase64ToBytes(normalized)).buffer
 }
 
 function isUrlLike(value: string) {

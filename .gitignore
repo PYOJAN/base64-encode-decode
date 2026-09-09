@@ -18,6 +18,17 @@ dist-ssr
 # TanStack Router build artifacts
 .tanstack/
 
+# Test fixtures. Signed sample PDFs carry real certificates, names and email
+# addresses, and run to several megabytes each — none of that belongs in a repo
+# that publishes to GitHub Pages. Matches the convention in the VerifyKit repo.
+fixtures/
+
+# Editor extension bundles that get dropped here while debugging
+*.vsix
+
+# Probe screenshots
+.screenshots/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

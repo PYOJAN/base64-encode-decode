@@ -80,6 +80,20 @@ function PdfViewerContent({
   const [loadError, setLoadError] = useState<string | null>(null)
   const [isPreparing, setIsPreparing] = useState(true)
   const viewerRef = useRef<ViewerHandle | null>(null)
+
+  /**
+   * The decoded bytes, shown before verification has run. The WASM verifier is synchronous and
+   * holds the main thread for seconds on a large file, so waiting for it to finish before
+   * handing anything to the Viewer left the user staring at a spinner the whole time.
+   */
+  const [previewBuffer, setPreviewBuffer] = useState<ArrayBuffer | null>(null)
+  /**
+   * The exact buffer handed to `load()`. Lets "the SDK kept our bytes" be told from "the
+   * appearance swap produced new bytes" by reference, instead of comparing megabytes.
+   */
+  const verifiedInputRef = useRef<ArrayBuffer | null>(null)
+  /** The viewer's own DOM, watched to tell when a page has actually been rasterized. */
+  const containerRef = useRef<HTMLDivElement | null>(null)
   const toolbarVisibility = viewerOptions?.provider?.toolbar
 
   // Built once per mount, as the SDK requires: "always construct it inside useState — building
@@ -118,6 +132,8 @@ function PdfViewerContent({
       const { load, reset } = verificationRef.current
       reset()
       setLoadError(null)
+      setPreviewBuffer(null)
+      verifiedInputRef.current = null
       setIsPreparing(true)
 
       const trimmed = data.trim()
@@ -130,6 +146,21 @@ function PdfViewerContent({
       try {
         const input = await resolvePdfInput(trimmed)
         if (cancelled) return
+
+        // Show the document first, verify second. Only the byte path can do this — a URL or
+        // blob input has nothing to display until the SDK has fetched it.
+        if (input instanceof ArrayBuffer) {
+          // pdf.js transfers the buffer it is handed to its own worker, which detaches it.
+          // Give it a copy so the verifier below is not passed a zero-length buffer.
+          setPreviewBuffer(input.slice(0))
+          setIsPreparing(false)
+          verifiedInputRef.current = input
+
+          // Verification blocks the main thread, so React and pdf.js would never get the
+          // frames they need. Let a page actually reach the screen before starting it.
+          await waitForFirstPage(containerRef)
+          if (cancelled) return
+        }
 
         await load(input, toPdfFileName(title))
       } catch (error) {
@@ -159,10 +190,17 @@ function PdfViewerContent({
   }, [verification.signatures, viewerOptions?.signaturePanelOpen])
 
   const errorMessage = loadError ?? formatLoadError(verification.error)
+  // Keep showing the preview bytes unless the appearance swap actually replaced them — the SDK
+  // hands `fileBuffer` straight back when no swap is needed, so comparing by reference avoids
+  // re-rendering the whole document for an identical buffer.
+  const displayBuffer =
+    verification.fileBuffer && verification.fileBuffer !== verifiedInputRef.current
+      ? verification.fileBuffer
+      : (previewBuffer ?? verification.fileBuffer)
   // `loadError` means the document cannot be displayed, so the error panel has to win even
   // though a buffer exists. `verification.error` is deliberately not part of this: a signature
   // that fails to verify is still a PDF the user should be able to read.
-  const isReady = Boolean(verification.fileBuffer) && !loadError
+  const isReady = Boolean(displayBuffer) && !loadError
   const isLoading = isPreparing || verification.isLoading
 
   return (
@@ -200,10 +238,10 @@ function PdfViewerContent({
       )}
 
       {isReady ? (
-        <div className="relative flex-1 min-h-0">
+        <div ref={containerRef} className="relative flex-1 min-h-0">
           <Viewer
             ref={viewerRef}
-            fileBuffer={verification.fileBuffer}
+            fileBuffer={displayBuffer}
             fileName={verification.fileName || toPdfFileName(title)}
             plugins={[layout.plugin]}
             signatures={verification.signatures}
@@ -245,6 +283,39 @@ function PdfViewerContent({
       )}
     </div>
   )
+}
+
+/**
+ * Resolves once a page has actually been rasterized into the viewer.
+ *
+ * The Viewer's `onDocumentLoaded` is not the right signal — it fires when pdf.js has *parsed*
+ * the file, roughly 400ms in, while the first canvas is still several hundred milliseconds
+ * away. Starting the blocking verifier there froze the main thread before anything reached the
+ * screen, which is the whole problem this is meant to avoid. A painted canvas is the only
+ * signal that matches what the user can see.
+ *
+ * The cap matters: verification must never be held hostage by a page that never rasterizes.
+ * Missing the paint costs a stutter; never verifying would cost the entire feature.
+ */
+function waitForFirstPage(ref: { current: HTMLElement | null }, timeoutMs = 5000) {
+  return new Promise<void>((resolve) => {
+    const start = performance.now()
+
+    const tick = () => {
+      // The ref, not a snapshot of it: this starts one tick before React has committed the
+      // render that creates the container, so reading `.current` once would always see null.
+      const canvas = ref.current?.querySelector("canvas")
+      const painted = canvas instanceof HTMLCanvasElement && canvas.width > 0
+      if (painted || performance.now() - start > timeoutMs) {
+        // One more frame so the canvas is composited, not merely present in the DOM.
+        requestAnimationFrame(() => resolve())
+        return
+      }
+      requestAnimationFrame(tick)
+    }
+
+    requestAnimationFrame(tick)
+  })
 }
 
 const HAS_WHITESPACE = /\s/
